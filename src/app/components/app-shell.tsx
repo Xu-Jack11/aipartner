@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Layout } from "antd";
 import { usePathname } from "next/navigation";
@@ -29,7 +29,7 @@ const AppShell = ({ children }: { children: ReactNode }) => {
   const isChatRoute = useMemo(() => pathname.startsWith("/chat"), [pathname]);
   const contentStyle = useMemo(
     () => (isChatRoute ? chatContentStyle : baseContentStyle),
-    [isChatRoute],
+    [isChatRoute]
   );
 
   return (

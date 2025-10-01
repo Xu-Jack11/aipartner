@@ -90,6 +90,14 @@ const studySessions: StudySession[] = [
   },
 ];
 
+const FULL_PERCENTAGE = 100;
+const GRID_GUTTER_COMPACT = 16;
+const STUDY_OVERVIEW_GUTTER: [number, number] = [
+  GRID_GUTTER_COMPACT,
+  GRID_GUTTER_COMPACT,
+];
+const STUDY_STREAK_DAYS = 6;
+
 const totalWeeklyMinutes = studySessions.reduce(
   (sum, session) => sum + session.minutes,
   0
@@ -134,8 +142,11 @@ const LearningPlans = () => (
         const completion =
           plan.targetSteps === 0
             ? 0
-            : Math.round((plan.completedSteps / plan.targetSteps) * 100);
-        const safeCompletion = completion > 100 ? 100 : completion;
+            : Math.round(
+                (plan.completedSteps / plan.targetSteps) * FULL_PERCENTAGE
+              );
+        const safeCompletion =
+          completion > FULL_PERCENTAGE ? FULL_PERCENTAGE : completion;
         return (
           <List.Item
             actions={[
@@ -174,7 +185,7 @@ const LearningPlans = () => (
 
 const StudyOverview = () => (
   <Card title="学习概览">
-    <Row gutter={[16, 16]}>
+    <Row gutter={STUDY_OVERVIEW_GUTTER}>
       <Col md={8} sm={12} xs={24}>
         <Statistic suffix="小时" title="本周学习时长" value={weeklyHours} />
       </Col>
@@ -186,7 +197,7 @@ const StudyOverview = () => (
         />
       </Col>
       <Col md={8} sm={12} xs={24}>
-        <Statistic suffix="天" title="连续学习天数" value={6} />
+        <Statistic suffix="天" title="连续学习天数" value={STUDY_STREAK_DAYS} />
       </Col>
     </Row>
   </Card>

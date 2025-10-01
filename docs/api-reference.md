@@ -1,4 +1,4 @@
-﻿# API Reference Plan
+# API Reference Plan
 
 ## Overview
 - Base URL: `https://api.aipartner.example.com`(dev version use `https://localhost`)

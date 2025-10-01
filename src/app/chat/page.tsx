@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { BookOutlined, BulbOutlined, GlobalOutlined } from "@ant-design/icons";
 import {

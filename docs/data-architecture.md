@@ -1,4 +1,4 @@
-﻿# Data Architecture Plan
+# Data Architecture Plan
 
 ## Store Overview
 - **PostgreSQL**: authoritative store for structured entities (users, plans, tasks, progress metrics).

@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import type { ThemeConfig } from "antd";
-import { App as AntdApp, ConfigProvider, theme as antdTheme } from "antd";
+import { App as AntdApp, theme as antdTheme, ConfigProvider } from "antd";
 import type { ReactNode } from "react";
 import {
   createContext,
@@ -24,7 +24,8 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 const themeStorageKey = "aipartner-theme-mode";
 
 const resolveThemeConfig = (mode: ThemeMode): ThemeConfig => ({
-  algorithm: mode === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+  algorithm:
+    mode === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
   token: {
     borderRadius: 12,
     colorBgBase: mode === "dark" ? "#08090a" : "#ffffff",
@@ -40,7 +41,9 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [mode, setMode] = useState<ThemeMode>("light");
 
   useEffect(() => {
-    const storedMode = window.localStorage.getItem(themeStorageKey) as ThemeMode | null;
+    const storedMode = window.localStorage.getItem(
+      themeStorageKey
+    ) as ThemeMode | null;
     if (storedMode === "light" || storedMode === "dark") {
       setMode(storedMode);
       return;
@@ -64,7 +67,7 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
       mode,
       setMode: handleModeChange,
     }),
-    [mode, handleModeChange],
+    [mode, handleModeChange]
   );
 
   const themeConfig = useMemo(() => resolveThemeConfig(mode), [mode]);
