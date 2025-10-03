@@ -118,6 +118,17 @@ export function completeTask(
   taskId: string
 ): Promise<PlanResponse> {
   return updatePlanTask(accessToken, planId, taskId, {
+    status: "done",
     completedAt: new Date().toISOString(),
+  });
+}
+
+/**
+ * 删除学习计划
+ */
+export function deletePlan(accessToken: string, planId: string): Promise<void> {
+  return apiFetch<void>(`v1/plans/${planId}`, {
+    accessToken,
+    method: "DELETE",
   });
 }

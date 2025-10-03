@@ -1,6 +1,7 @@
 ﻿import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -81,5 +82,11 @@ export class PlanningController {
     @Body() dto: UpdateTaskDto
   ) {
     return await this.planningService.updateTask(user.id, planId, taskId, dto);
+  }
+
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deletePlan(@CurrentUser() user: AuthUser, @Param("id") planId: string) {
+    await this.planningService.deletePlan(user.id, planId);
   }
 }

@@ -12,6 +12,7 @@ import {
   Input,
   List,
   Modal,
+  Popconfirm,
   Progress,
   Select,
   Space,
@@ -25,6 +26,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   addTaskToPlan,
   completeTask,
+  deletePlan,
   fetchPlans,
   updatePlan,
   updatePlanTask,
@@ -44,6 +46,8 @@ const PlanCard = ({
   onEdit,
   onAddTask,
   onToggleTask,
+  onDelete,
+  onCompletePlan,
 }: {
   readonly plan: PlanResponse;
   readonly onEdit: (plan: PlanResponse) => void;
@@ -53,6 +57,8 @@ const PlanCard = ({
     taskId: string,
     currentStatus: string
   ) => void;
+  readonly onDelete: (planId: string) => void;
+  readonly onCompletePlan: (planId: string) => void;
 }) => {
   const completion = Math.round(
     plan.targetSteps > 0
@@ -106,18 +112,44 @@ const PlanCard = ({
 
   return (
     <Card
-      actions={[
-        <Button key="edit" onClick={() => onEdit(plan)} type="link">
-          编辑计划
-        </Button>,
-        <Button key="add" onClick={() => onAddTask(plan)} type="link">
-          添加任务
-        </Button>,
-      ]}
-      style={{ marginBottom: 16 }}
+      extra={
+        <Space>
+          <Button onClick={() => onEdit(plan)} size="small">
+            编辑
+          </Button>
+          <Button onClick={() => onAddTask(plan)} size="small" type="dashed">
+            添加任务
+          </Button>
+          {plan.status !== "completed" && (
+            <Popconfirm
+              cancelText="取消"
+              description="确认将此计划标记为已完成？"
+              okText="确认"
+              onConfirm={() => onCompletePlan(plan.id)}
+              title="完成计划"
+            >
+              <Button size="small" type="primary">
+                完成计划
+              </Button>
+            </Popconfirm>
+          )}
+          <Popconfirm
+            cancelText="取消"
+            description="删除后将无法恢复，确认删除此计划？"
+            okText="删除"
+            okType="danger"
+            onConfirm={() => onDelete(plan.id)}
+            title="确认删除"
+          >
+            <Button danger size="small">
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
+      }
       title={
         <Space>
-          <span>{plan.title}</span>
+          <Text strong>{plan.title}</Text>
           <Tag color={getStatusColor(plan.status)}>
             {getStatusText(plan.status)}
           </Tag>
@@ -258,17 +290,18 @@ const PlanPage = () => {
 
     try {
       if (currentStatus === "done") {
-        // 如果任务已完成，将其标记为进行中
+        // 如果任务已完成，将其标记为待开始(取消完成)
         await updatePlanTask(accessToken, planId, taskId, {
-          status: "in_progress",
+          status: "pending",
           completedAt: undefined,
         });
+        message.success("已取消完成");
       } else {
         // 否则标记为完成
         await completeTask(accessToken, planId, taskId);
+        message.success("任务已完成");
       }
       await loadPlans();
-      message.success("任务状态更新成功");
     } catch {
       message.error("更新任务状态失败");
     }
@@ -308,6 +341,42 @@ const PlanPage = () => {
       message.error("添加任务失败");
     }
   };
+
+  const handleDeletePlan = useCallback(
+    async (planId: string) => {
+      if (!accessToken) {
+        message.error("请先登录");
+        return;
+      }
+
+      try {
+        await deletePlan(accessToken, planId);
+        message.success("学习计划已删除");
+        await loadPlans();
+      } catch {
+        message.error("删除学习计划失败");
+      }
+    },
+    [accessToken, loadPlans, message]
+  );
+
+  const handleCompletePlan = useCallback(
+    async (planId: string) => {
+      if (!accessToken) {
+        message.error("请先登录");
+        return;
+      }
+
+      try {
+        await updatePlan(accessToken, planId, { status: "completed" });
+        message.success("学习计划已标记为完成");
+        await loadPlans();
+      } catch {
+        message.error("完成学习计划失败");
+      }
+    },
+    [accessToken, loadPlans, message]
+  );
 
   if (authStatus === "loading") {
     return (
@@ -356,6 +425,8 @@ const PlanPage = () => {
               <PlanCard
                 key={plan.id}
                 onAddTask={handleAddTask}
+                onCompletePlan={handleCompletePlan}
+                onDelete={handleDeletePlan}
                 onEdit={handleEdit}
                 onToggleTask={handleToggleTask}
                 plan={plan}
