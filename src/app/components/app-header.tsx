@@ -1,10 +1,12 @@
 "use client";
 
 import type { MenuProps } from "antd";
-import { Layout, Menu, Space, Typography } from "antd";
+import { Button, Layout, Menu, Space, Typography } from "antd";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties } from "react";
+import { useMemo } from "react";
+import { useAuth } from "@/lib/auth-context";
 import ThemeSwitcher from "./theme-switcher";
 
 const headerStyle: CSSProperties = {
@@ -35,11 +37,50 @@ const navigationItems: MenuProps["items"] = [
     key: "chat",
     label: <Link href="/chat">对话</Link>,
   },
+  {
+    key: "plan",
+    label: <Link href="/plan">计划</Link>,
+  },
+  {
+    key: "progress",
+    label: <Link href="/progress">进度</Link>,
+  },
+  {
+    key: "persona",
+    label: <Link href="/persona">画像</Link>,
+  },
 ];
+
+const navigationMatchers = [
+  {
+    key: "home",
+    match: (path: string) => path === "/",
+  },
+  {
+    key: "chat",
+    match: (path: string) => path.startsWith("/chat"),
+  },
+  {
+    key: "plan",
+    match: (path: string) => path.startsWith("/plan"),
+  },
+  {
+    key: "progress",
+    match: (path: string) => path.startsWith("/progress"),
+  },
+  {
+    key: "persona",
+    match: (path: string) => path.startsWith("/persona"),
+  },
+] as const;
 
 const AppHeader = () => {
   const pathname = usePathname();
-  const activeKey = pathname.startsWith("/chat") ? "chat" : "home";
+  const { user, status, logout } = useAuth();
+  const activeKey = useMemo(() => {
+    const matched = navigationMatchers.find((item) => item.match(pathname));
+    return matched?.key ?? "home";
+  }, [pathname]);
 
   return (
     <Layout.Header role="banner" style={headerStyle}>
@@ -57,7 +98,23 @@ const AppHeader = () => {
         />
       </nav>
       <Space align="center" size={12}>
-        <Typography.Text aria-live="polite">下午好，李华</Typography.Text>
+        {status === "authenticated" && user ? (
+          <Typography.Text aria-live="polite">
+            欢迎，{user.displayName}
+          </Typography.Text>
+        ) : (
+          <Link href="/login">登录</Link>
+        )}
+        {status === "authenticated" ? (
+          <Button
+            htmlType="button"
+            onClick={logout}
+            size="small"
+            type="default"
+          >
+            退出
+          </Button>
+        ) : null}
         <ThemeSwitcher />
       </Space>
     </Layout.Header>

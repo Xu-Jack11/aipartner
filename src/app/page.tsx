@@ -1,13 +1,16 @@
 "use client";
 
 import {
+  Alert,
   Card,
   Col,
   Divider,
+  Empty,
   List,
   Progress,
   Row,
   Space,
+  Spin,
   Statistic,
   Table,
   Tag,
@@ -15,103 +18,28 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import Link from "next/link";
+import { useMemo } from "react";
+import type {
+  ChatSessionResponse,
+  LearningPlanResponse,
+  StudySessionResponse,
+} from "@/lib/api/learning";
+import { useAuth } from "@/lib/auth-context";
+import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
 
-type LearningPlan = {
-  completedSteps: number;
-  dueDate: string;
-  focus: string;
-  id: string;
-  sessionId: string;
-  targetSteps: number;
-  title: string;
-};
-
-type StudySession = {
-  date: string;
-  focus: string;
-  id: string;
-  minutes: number;
-};
-
-const learningPlans: LearningPlan[] = [
-  {
-    completedSteps: 5,
-    dueDate: "2025-10-01",
-    focus: "线性代数",
-    id: "plan-linear",
-    sessionId: "session-linear",
-    targetSteps: 7,
-    title: "线性代数重点回顾",
-  },
-  {
-    completedSteps: 3,
-    dueDate: "2025-10-03",
-    focus: "考研英语",
-    id: "plan-english",
-    sessionId: "session-english",
-    targetSteps: 5,
-    title: "阅读理解强化练习",
-  },
-  {
-    completedSteps: 2,
-    dueDate: "2025-10-05",
-    focus: "概率统计",
-    id: "plan-statistics",
-    sessionId: "session-statistics",
-    targetSteps: 6,
-    title: "概率论章节复习",
-  },
-];
-
-const studySessions: StudySession[] = [
-  {
-    date: "2025-09-28",
-    focus: "线性代数习题",
-    id: "session-linear",
-    minutes: 110,
-  },
-  {
-    date: "2025-09-27",
-    focus: "英语阅读理解",
-    id: "session-english",
-    minutes: 95,
-  },
-  {
-    date: "2025-09-26",
-    focus: "概率统计",
-    id: "session-statistics",
-    minutes: 80,
-  },
-  {
-    date: "2025-09-25",
-    focus: "线性代数知识点梳理",
-    id: "session-linear-review",
-    minutes: 120,
-  },
-];
-
-const FULL_PERCENTAGE = 100;
+const PERCENTAGE_MULTIPLIER = 100;
 const GRID_GUTTER_COMPACT = 16;
 const STUDY_OVERVIEW_GUTTER: [number, number] = [
   GRID_GUTTER_COMPACT,
   GRID_GUTTER_COMPACT,
 ];
-const STUDY_STREAK_DAYS = 6;
+const MAX_RECENT_CHAT_SESSIONS = 3;
 
-const totalWeeklyMinutes = studySessions.reduce(
-  (sum, session) => sum + session.minutes,
-  0
-);
-const weeklyHours = Math.round((totalWeeklyMinutes / 60) * 10) / 10;
-const totalCompletedSteps = learningPlans.reduce(
-  (total, plan) => total + plan.completedSteps,
-  0
-);
-
-const sessionColumns: ColumnsType<StudySession> = [
+const StudySessionsColumns: ColumnsType<StudySessionResponse> = [
   {
     dataIndex: "date",
     key: "date",
+    render: (value: string) => new Date(value).toLocaleDateString(),
     title: "日期",
   },
   {
@@ -122,40 +50,45 @@ const sessionColumns: ColumnsType<StudySession> = [
   {
     dataIndex: "minutes",
     key: "minutes",
-    render: (value: number) => {
-      const hours = Math.round((value / 60) * 10) / 10;
-      return `${hours} 小时`;
-    },
+    render: (value: number) => `${Math.round((value / 60) * 10) / 10} 小时`,
     title: "学习时长",
   },
 ];
 
-const LearningPlans = () => (
+const LearningPlans = ({
+  plans,
+}: {
+  readonly plans: readonly LearningPlanResponse[];
+}) => (
   <Card
     extra={<Typography.Text>点击计划跳转至对应对话</Typography.Text>}
     title="学习计划"
   >
     <List
-      dataSource={learningPlans}
+      dataSource={plans}
       itemLayout="vertical"
+      locale={{ emptyText: <Empty description="暂无学习计划" /> }}
       renderItem={(plan) => {
         const completion =
           plan.targetSteps === 0
             ? 0
             : Math.round(
-                (plan.completedSteps / plan.targetSteps) * FULL_PERCENTAGE
+                (plan.completedSteps / plan.targetSteps) * PERCENTAGE_MULTIPLIER
               );
-        const safeCompletion =
-          completion > FULL_PERCENTAGE ? FULL_PERCENTAGE : completion;
         return (
           <List.Item
             actions={[
-              <Link
-                href={`/chat?session=${plan.sessionId}`}
-                key={`link-${plan.id}`}
-              >
-                查看对话记录
-              </Link>,
+              plan.sessionId ? (
+                <Link
+                  href={{
+                    pathname: "/chat",
+                    query: { session: plan.sessionId },
+                  }}
+                  key={`${plan.id}-link`}
+                >
+                  查看对话记录
+                </Link>
+              ) : null,
             ]}
             key={plan.id}
           >
@@ -163,7 +96,11 @@ const LearningPlans = () => (
               description={
                 <Space size={12} wrap>
                   <Tag bordered={false}>目标：{plan.focus}</Tag>
-                  <Tag bordered={false}>截止：{plan.dueDate}</Tag>
+                  {plan.dueDate ? (
+                    <Tag bordered={false}>
+                      截止：{new Date(plan.dueDate).toLocaleDateString()}
+                    </Tag>
+                  ) : null}
                   <Tag bordered={false} color="processing">
                     进度：{plan.completedSteps}/{plan.targetSteps}
                   </Tag>
@@ -172,8 +109,8 @@ const LearningPlans = () => (
               title={plan.title}
             />
             <Progress
-              aria-label={`${plan.title} 当前完成进度 ${safeCompletion}%`}
-              percent={safeCompletion}
+              aria-label={`${plan.title} 当前完成进度 ${completion}%`}
+              percent={completion}
               showInfo
             />
           </List.Item>
@@ -183,7 +120,15 @@ const LearningPlans = () => (
   </Card>
 );
 
-const StudyOverview = () => (
+const StudyOverview = ({
+  weeklyHours,
+  totalCompletedSteps,
+  streakDays,
+}: {
+  readonly weeklyHours: number;
+  readonly totalCompletedSteps: number;
+  readonly streakDays: number;
+}) => (
   <Card title="学习概览">
     <Row gutter={STUDY_OVERVIEW_GUTTER}>
       <Col md={8} sm={12} xs={24}>
@@ -197,18 +142,23 @@ const StudyOverview = () => (
         />
       </Col>
       <Col md={8} sm={12} xs={24}>
-        <Statistic suffix="天" title="连续学习天数" value={STUDY_STREAK_DAYS} />
+        <Statistic suffix="天" title="连续学习天数" value={streakDays} />
       </Col>
     </Row>
   </Card>
 );
 
-const StudySessionsTable = () => (
+const StudySessionsTable = ({
+  sessions,
+}: {
+  readonly sessions: readonly StudySessionResponse[];
+}) => (
   <Card title="近期学习记录">
     <Table
       aria-label="近期学习记录列表"
-      columns={sessionColumns}
-      dataSource={studySessions}
+      columns={StudySessionsColumns}
+      dataSource={sessions}
+      locale={{ emptyText: <Empty description="暂无学习记录" /> }}
       pagination={false}
       rowKey={(record) => record.id}
       size="small"
@@ -216,35 +166,110 @@ const StudySessionsTable = () => (
   </Card>
 );
 
-const ProfileCard = () => (
+const ProfileCard = ({
+  name,
+  learningGoal,
+  recentFocus,
+}: {
+  readonly name: string;
+  readonly learningGoal: string;
+  readonly recentFocus: string;
+}) => (
   <Card title="个人信息">
     <Space direction="vertical" size={12}>
-      <Typography.Paragraph>姓名：李华</Typography.Paragraph>
-      <Typography.Paragraph>
-        学习目标：考研英语冲刺 + 数学巩固
-      </Typography.Paragraph>
-      <Typography.Paragraph>
-        最近关注：线性代数核心概念、阅读理解技巧
-      </Typography.Paragraph>
+      <Typography.Paragraph>姓名：{name}</Typography.Paragraph>
+      <Typography.Paragraph>学习目标：{learningGoal}</Typography.Paragraph>
+      <Typography.Paragraph>最近关注：{recentFocus}</Typography.Paragraph>
     </Space>
   </Card>
 );
 
-const Home = () => (
-  <Space direction="vertical" size={24} style={{ width: "100%" }}>
-    <Typography.Title level={2}>学习主页</Typography.Title>
-    <StudyOverview />
-    <Row gutter={[24, 24]}>
-      <Col lg={14} xs={24}>
-        <LearningPlans />
-      </Col>
-      <Col lg={10} xs={24}>
-        <ProfileCard />
-        <Divider />
-        <StudySessionsTable />
-      </Col>
-    </Row>
-  </Space>
-);
+const Home = () => {
+  const { status: authStatus } = useAuth();
+  const { data, status, error } = useLearningSummary();
+
+  const isLoading =
+    status === "loading" ||
+    (authStatus === "authenticated" && status === "idle");
+  const showLoginReminder = authStatus !== "authenticated";
+
+  const chatSessions = useMemo<ChatSessionResponse[]>(() => {
+    if (!data) {
+      return [];
+    }
+    const sessions: ChatSessionResponse[] = [];
+    for (const session of data.chatSessions) {
+      sessions.push(session);
+      if (sessions.length === MAX_RECENT_CHAT_SESSIONS) {
+        break;
+      }
+    }
+    return sessions;
+  }, [data]);
+
+  return (
+    <Space direction="vertical" size={24} style={{ width: "100%" }}>
+      <Typography.Title level={2}>学习主页</Typography.Title>
+      {showLoginReminder ? (
+        <Alert
+          action={<Link href="/login">前往登录</Link>}
+          message="请登录以查看个性化学习数据"
+          showIcon
+          type="info"
+        />
+      ) : null}
+      {error ? <Alert message={error} showIcon type="error" /> : null}
+      {isLoading ? (
+        <Space align="center" style={{ width: "100%", padding: "48px 0" }}>
+          <Spin size="large" />
+        </Space>
+      ) : null}
+      {data && !isLoading ? (
+        <>
+          <StudyOverview
+            streakDays={data.metrics.streakDays}
+            totalCompletedSteps={data.metrics.totalCompletedSteps}
+            weeklyHours={data.metrics.weeklyHours}
+          />
+          <Row gutter={[24, 24]}>
+            <Col lg={14} xs={24}>
+              <LearningPlans plans={data.learningPlans} />
+            </Col>
+            <Col lg={10} xs={24}>
+              <ProfileCard
+                learningGoal={data.learnerProfile.learningGoal}
+                name={data.learnerProfile.name}
+                recentFocus={data.learnerProfile.recentFocus}
+              />
+              <Divider />
+              <StudySessionsTable sessions={data.studySessions} />
+            </Col>
+          </Row>
+          {chatSessions.length > 0 ? (
+            <Card title="最近对话">
+              <List
+                dataSource={chatSessions}
+                renderItem={(session) => (
+                  <List.Item key={session.id}>
+                    <Space
+                      direction="vertical"
+                      size={4}
+                      style={{ width: "100%" }}
+                    >
+                      <Typography.Text strong>{session.title}</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {`${session.updatedAt ? new Date(session.updatedAt).toLocaleString() : ""} · ${session.focus}`}
+                      </Typography.Text>
+                    </Space>
+                  </List.Item>
+                )}
+              />
+            </Card>
+          ) : null}
+        </>
+      ) : null}
+    </Space>
+  );
+};
 
 export default Home;

@@ -26,7 +26,7 @@
 7. **集成部署**：合入后触发 CI/CD，观察监控，必要时回滚。
 
 ## 技术栈与约束
-- 框架：Next.js 15（App Router + Server Components）
+- 框架：Next.js 15+NestJS
 - 语言：TypeScript、React 19
 - UI：Ant Design 5、Tailwind CSS 4（或 PostCSS 实现原子化）
 - 状态：React Context + SWR/React Query；必要时 Zustand

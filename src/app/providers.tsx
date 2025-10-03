@@ -11,6 +11,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { AuthProvider } from "@/lib/auth-context";
 
 type ThemeMode = "light" | "dark";
 
@@ -75,7 +76,9 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ThemeContext.Provider value={providedValue}>
       <ConfigProvider theme={themeConfig}>
-        <AntdApp>{children}</AntdApp>
+        <AntdApp>
+          <AuthProvider>{children}</AuthProvider>
+        </AntdApp>
       </ConfigProvider>
     </ThemeContext.Provider>
   );

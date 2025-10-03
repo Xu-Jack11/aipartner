@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  passwordHash      String             @map("password_hash")
+  displayName       String             @map("display_name")
+  timezone          String?            @default("UTC")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  sessions          Session[]
+  plans             Plan[]
+  studySessions     StudySession[]
+  progressSnapshots ProgressSnapshot[]
+  chatMessages      ChatMessage[]
+}
+
+model Session {
+  id         String         @id @default(uuid())
+  userId     String         @map("user_id")
+  title      String
+  focus      String
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plans          Plan[]
+  studySessions  StudySession[]
+  messages       ChatMessage[]
+
+  @@unique([userId, title], name: "sessions_user_title_key")
+}
+
+model Plan {
+  id             String     @id @default(uuid())
+  userId         String     @map("user_id")
+  sessionId      String?    @map("session_id")
+  title          String
+  focus          String
+  dueDate        DateTime?  @map("due_date")
+  status         String     @default("in-progress")
+  targetSteps    Int        @default(0) @map("target_steps")
+  completedSteps Int        @default(0) @map("completed_steps")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session        Session?   @relation(fields: [sessionId], references: [id])
+  tasks          Task[]
+
+  @@index([userId], name: "idx_plans_user")
+  @@index([sessionId], name: "idx_plans_session")
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  planId      String    @map("plan_id")
+  summary     String
+  status      String    @default("todo")
+  dueDate     DateTime? @map("due_date")
+  completedAt DateTime? @map("completed_at")
+  orderIndex  Int       @default(0) @map("order_index")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  plan        Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, status], name: "idx_tasks_plan_status")
+}
+
+model StudySession {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  sessionId  String?  @map("session_id")
+  focus      String
+  minutes    Int
+  recordedAt DateTime @default(now()) @map("recorded_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session    Session? @relation(fields: [sessionId], references: [id])
+
+  @@index([userId, recordedAt], name: "idx_study_sessions_user_recorded")
+}
+
+model ProgressSnapshot {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  streakDays     Int      @map("streak_days")
+  completedTasks Int      @map("completed_tasks")
+  studyMinutes   Int      @map("study_minutes")
+  capturedAt     DateTime @default(now()) @map("captured_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, capturedAt], name: "idx_progress_snapshots_user_captured")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  userId    String   @map("user_id")
+  role      String   @default("user")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt], name: "idx_chat_messages_session_created")
+}

@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This repository hosts the **AI 学习搭子** platform, combining a Next.js 15 frontend with a NestJS backend that powers authentication and future learning services.
 
-## Getting Started
-
-First, run the development server:
+## Development Scripts
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Frontend: runs the Next.js dev server with Turbopack
 pnpm dev
-# or
-bun dev
+
+# Backend: starts the NestJS API with ts-node
+pnpm server:dev
+
+# Build backend output to dist/server
+pnpm server:build
+
+# Start backend from compiled output
+pnpm server:start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The frontend is available at [http://localhost:3000](http://localhost:3000). By default the backend listens on [http://localhost:4000](http://localhost:4000) and exposes its REST API under `/api`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The backend reads configuration exclusively from environment variables. Set these before launching `pnpm server:dev` or the compiled server:
 
-## Learn More
+| Variable | Default (non-production) | Description |
+| --- | --- | --- |
+| `PORT` | `4000` | HTTP port for the NestJS server |
+| `JWT_SECRET` | `local-development-secret` | Symmetric secret used to sign access tokens |
+| `JWT_EXPIRES_IN` | `1h` | JWT expiration window expressed in [zeit/ms](https://github.com/vercel/ms) compatible format |
 
-To learn more about Next.js, take a look at the following resources:
+In production builds `JWT_SECRET` and `JWT_EXPIRES_IN` are required — the process will exit early if either value is missing.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Code Quality
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Run Ultracite (Biome) to validate formatting and linting across the monorepo:
 
-## Deploy on Vercel
+```bash
+pnpm ultracite check
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+apps/
+  server/              NestJS backend (authentication, future services)
+docs/                  Architecture, requirements, and planning assets
+src/                   Next.js application
+```
+
+The NestJS backend currently provides registration, login, and profile retrieval endpoints with JWT-based authentication. The in-memory `UsersService` is a placeholder until database layers are integrated.
