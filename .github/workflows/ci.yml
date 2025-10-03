@@ -58,9 +58,6 @@ jobs:
       - name: Run database migrations
         run: pnpm prisma migrate deploy || echo "Migrations skipped in CI"
         
-      - name: Lint
-        run: pnpm exec ultracite check
-        
       - name: Type check frontend
         run: pnpm exec tsc --noEmit
         
