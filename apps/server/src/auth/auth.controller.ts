@@ -12,8 +12,10 @@ import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires runtime metadata.
 import { AuthService } from "./auth.service";
 import type { AuthResult, AuthUser } from "./auth.types";
-import type { LoginDto } from "./dto/login.dto";
-import type { RegisterDto } from "./dto/register.dto";
+// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime.
+import { LoginDto } from "./dto/login.dto";
+// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime.
+import { RegisterDto } from "./dto/register.dto";
 
 @Controller({ path: "auth", version: "1" })
 export class AuthController {
