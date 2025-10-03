@@ -3,7 +3,7 @@
  */
 
 export type PlanStatus = "active" | "completed" | "archived";
-export type TaskStatus = "pending" | "in_progress" | "done";
+export type TaskStatus = "pending" | "done";
 
 export type TaskResponse = {
   id: string;

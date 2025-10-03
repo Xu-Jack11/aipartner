@@ -81,8 +81,6 @@ const PlanCard = ({
     switch (status) {
       case "done":
         return "green";
-      case "in_progress":
-        return "blue";
       default:
         return "default";
     }
@@ -103,10 +101,8 @@ const PlanCard = ({
     switch (status) {
       case "done":
         return "已完成";
-      case "in_progress":
-        return "进行中";
       default:
-        return "待开始";
+        return "待完成";
     }
   };
 
