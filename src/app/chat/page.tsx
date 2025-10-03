@@ -33,7 +33,9 @@ import {
 import type {
   ChatSessionResponse,
   LearningPlanResponse,
+  LearningTaskResponse,
 } from "@/lib/api/learning";
+import { generatePlanFromSession } from "@/lib/api/planning";
 import { useAuth } from "@/lib/auth-context";
 import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
 import { useSessionMessages } from "@/lib/hooks/use-session-messages";
@@ -204,22 +206,75 @@ const ChatSidebar = ({
   );
 };
 
-const ChatTaskList = ({ plan }: { readonly plan?: LearningPlanResponse }) => {
+const ChatTaskList = ({
+  plan,
+  sessionId,
+  onPlanGenerated,
+}: {
+  readonly plan?: LearningPlanResponse;
+  readonly sessionId?: string;
+  readonly onPlanGenerated?: () => void;
+}) => {
+  const { message } = App.useApp();
+  const { accessToken } = useAuth();
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGeneratePlan = useCallback(async () => {
+    if (sessionId === undefined) {
+      message.warning("请先开始对话");
+      return;
+    }
+    if (accessToken === undefined) {
+      message.error("登录已过期，请重新登录");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      await generatePlanFromSession(accessToken, { sessionId });
+      message.success("学习计划生成成功");
+      onPlanGenerated?.();
+      router.push("/plan");
+    } catch {
+      message.error("生成学习计划失败");
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [accessToken, message, onPlanGenerated, router, sessionId]);
+
   const completionPercent = calculateTaskCompletion(plan);
+
   return (
     <section
       aria-label="学习计划待办"
       className="chat-section chat-section--right"
     >
-      <Card title="学习计划待办" variant="borderless">
+      <Card
+        extra={
+          <Button
+            disabled={sessionId === undefined || isGenerating}
+            loading={isGenerating}
+            onClick={handleGeneratePlan}
+            size="small"
+            type="primary"
+          >
+            生成计划
+          </Button>
+        }
+        title="学习计划待办"
+        variant="borderless"
+      >
         <Space direction="vertical" size={16} style={{ width: "100%" }}>
           <Progress
-            aria-label={`当前学习计划完成度 ${completionPercent}%`}
+            aria-label={`当前学习计划完成率${completionPercent}%`}
             percent={completionPercent}
             showInfo
           />
           <List
-            dataSource={plan?.tasks ?? []}
+            dataSource={
+              plan?.tasks ? ([...plan.tasks] as LearningTaskResponse[]) : []
+            }
             locale={{ emptyText: "暂无任务" }}
             renderItem={(task) => {
               let statusText = "待开始";
@@ -227,7 +282,7 @@ const ChatTaskList = ({ plan }: { readonly plan?: LearningPlanResponse }) => {
               if (task.status === "done") {
                 statusText = "已完成";
                 color = "success";
-              } else if (task.status === "in-progress") {
+              } else if (task.status === "in_progress") {
                 statusText = "进行中";
                 color = "processing";
               }
@@ -418,6 +473,7 @@ const ChatComposer = ({
   );
 };
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: 聊天组件确实需要处理多种状态和交互,强制降低复杂度会损害可读性
 const ChatContent = () => {
   const { status: authStatus, accessToken } = useAuth();
   const { data, status, error, refetch } = useLearningSummary();
@@ -445,8 +501,11 @@ const ChatContent = () => {
   // 初始化:如果没有会话且没有临时会话,创建一个临时会话
   useEffect(() => {
     const sessionId = searchParams.get("session");
-    const shouldCreateTemp =
-      sessionId === null && tempSession === null && sessions.length === 0;
+    const hasNoSession = sessionId === null;
+    const hasNoTempSession = tempSession === null;
+    const hasNoSessions = sessions.length === 0;
+    const shouldCreateTemp = hasNoSession && hasNoTempSession && hasNoSessions;
+
     if (shouldCreateTemp) {
       setTempSession(createTempSession());
     }
@@ -467,31 +526,25 @@ const ChatContent = () => {
     }
 
     // 检查是否是临时会话
-    if (activeSessionId.startsWith(TEMP_SESSION_PREFIX)) {
+    const isTempSessionId = activeSessionId.startsWith(TEMP_SESSION_PREFIX);
+    if (isTempSessionId) {
       return tempSession ?? undefined;
     }
 
     // 查找真实会话
-    for (const session of sessions) {
-      if (session.id === activeSessionId) {
-        return session;
-      }
-    }
-    return;
+    return sessions.find((session) => session.id === activeSessionId);
   }, [activeSessionId, sessions, tempSession]);
 
   const isTemp = isTempSession(activeSession);
 
   const activePlan = useMemo(() => {
-    if (!(activeSession && data && !isTemp)) {
+    // 临时会话没有学习计划
+    if (isTemp || !activeSession || !data) {
       return;
     }
-    for (const plan of data.learningPlans) {
-      if (plan.sessionId === activeSession.id) {
-        return plan;
-      }
-    }
-    return;
+    return data.learningPlans.find(
+      (plan) => plan.sessionId === activeSession.id
+    );
   }, [activeSession, data, isTemp]);
 
   const {
@@ -505,54 +558,68 @@ const ChatContent = () => {
   // 临时会话的消息
   const messages = isTemp && tempSession ? tempSession.messages : realMessages;
 
+  // 处理临时会话的消息发送
+  const handleTempSessionMessage = useCallback(
+    async (
+      session: TempSession,
+      content: string,
+      options?: { readonly model?: string; readonly tools?: readonly string[] }
+    ) => {
+      if (!accessToken) {
+        return;
+      }
+
+      setIsCreatingSession(true);
+      try {
+        // 1. 创建真实会话(使用默认标题,后续可由AI总结更新)
+        const newSession = await createSession(accessToken, {
+          focus: session.focus,
+          title: "新对话",
+        });
+
+        // 2. 发送消息到新会话
+        await sendMessageApi(accessToken, newSession.id, {
+          content,
+          model: options?.model,
+          tools: options?.tools,
+        });
+
+        // 3. 清除临时会话
+        setTempSession(null);
+
+        // 4. 刷新会话列表(等待完成,确保新会话在列表中)
+        await refetch();
+
+        // 5. 跳转到新会话(不重载页面)
+        router.push(`/chat?session=${newSession.id}`);
+      } catch {
+        // 创建会话或发送消息失败
+        // 可以在这里显示错误提示
+      } finally {
+        setIsCreatingSession(false);
+      }
+    },
+    [accessToken, refetch, router]
+  );
+
   // 处理发送消息
   const handleSendMessage = useCallback(
     async (
       content: string,
       options?: { readonly model?: string; readonly tools?: readonly string[] }
     ) => {
-      const canSend = activeSession !== undefined && accessToken !== undefined;
-      if (!canSend) {
+      if (!(activeSession && accessToken)) {
         return;
       }
 
       if (isTempSession(activeSession)) {
-        // 临时会话:先创建真实会话,然后发送消息
-        setIsCreatingSession(true);
-        try {
-          // 1. 创建真实会话(使用默认标题,后续可由AI总结更新)
-          const newSession = await createSession(accessToken, {
-            focus: activeSession.focus,
-            title: "新对话",
-          });
-
-          // 2. 发送消息到新会话
-          await sendMessageApi(accessToken, newSession.id, {
-            content,
-            model: options?.model,
-            tools: options?.tools,
-          });
-
-          // 3. 清除临时会话
-          setTempSession(null);
-
-          // 4. 刷新会话列表(等待完成,确保新会话在列表中)
-          await refetch();
-
-          // 5. 跳转到新会话(不重载页面)
-          router.push(`/chat?session=${newSession.id}`);
-        } catch {
-          // 创建会话或发送消息失败
-          // 可以在这里显示错误提示
-        } finally {
-          setIsCreatingSession(false);
-        }
+        await handleTempSessionMessage(activeSession, content, options);
       } else {
         // 真实会话:直接发送
         await sendRealMessage(content, options);
       }
     },
-    [activeSession, accessToken, refetch, router, sendRealMessage]
+    [activeSession, accessToken, handleTempSessionMessage, sendRealMessage]
   );
 
   // 删除会话
@@ -567,11 +634,11 @@ const ChatContent = () => {
         await deleteSession(accessToken, sessionId);
         message.success("对话已删除");
 
-        // 如果删除的是当前会话,跳转到新建临时会话
-        if (sessionId === activeSession?.id) {
+        // 刷新会话列表并处理当前会话的变更
+        const isCurrentSession = sessionId === activeSession?.id;
+        if (isCurrentSession) {
           handleNewChat();
         } else {
-          // 否则只刷新列表
           await refetch();
         }
       } catch (err) {
@@ -666,7 +733,11 @@ const ChatContent = () => {
           />
         </Space>
       </section>
-      <ChatTaskList plan={activePlan} />
+      <ChatTaskList
+        onPlanGenerated={refetch}
+        plan={activePlan}
+        sessionId={isTemp ? undefined : activeSession?.id}
+      />
     </div>
   );
 };

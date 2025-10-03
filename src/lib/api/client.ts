@@ -16,12 +16,12 @@ type NextDataWindow = typeof window & {
 
 const getApiBaseUrl = (): string => {
   if (typeof window === "undefined") {
-    return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:4000";
+    return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3001";
   }
   const typedWindow = window as NextDataWindow;
   const injected = typedWindow.__NEXT_DATA__?.props?.pageProps?.apiBaseUrl;
   return (
-    injected ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:4000"
+    injected ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3001"
   );
 };
 

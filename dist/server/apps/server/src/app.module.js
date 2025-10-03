@@ -13,6 +13,7 @@ const auth_module_1 = require("./auth/auth.module");
 const env_1 = require("./config/env");
 const dialogue_module_1 = require("./dialogue/dialogue.module");
 const learning_module_1 = require("./learning/learning.module");
+const planning_module_1 = require("./planning/planning.module");
 const prisma_module_1 = require("./prisma/prisma.module");
 const users_module_1 = require("./users/users.module");
 let AppModule = class AppModule {
@@ -31,6 +32,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             learning_module_1.LearningModule,
             dialogue_module_1.DialogueModule,
+            planning_module_1.PlanningModule,
         ],
     })
 ], AppModule);

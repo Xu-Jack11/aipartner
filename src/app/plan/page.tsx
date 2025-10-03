@@ -2,169 +2,433 @@
 
 import {
   Alert,
+  App,
+  Button,
   Card,
+  Checkbox,
+  DatePicker,
   Empty,
+  Form,
+  Input,
   List,
+  Modal,
   Progress,
+  Select,
   Space,
   Spin,
   Tag,
   Typography,
 } from "antd";
+import dayjs from "dayjs";
 import Link from "next/link";
-import type {
-  LearningPlanResponse,
-  LearningTaskResponse,
-} from "@/lib/api/learning";
+import { useCallback, useEffect, useState } from "react";
+import {
+  addTaskToPlan,
+  completeTask,
+  fetchPlans,
+  updatePlan,
+  updatePlanTask,
+} from "@/lib/api/planning";
 import { useAuth } from "@/lib/auth-context";
-import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
+import type {
+  CreateTaskDto,
+  PlanResponse,
+  UpdatePlanDto,
+} from "@/types/planning";
 
 const PERCENTAGE_MULTIPLIER = 100;
+const { Title, Text, Paragraph } = Typography;
 
-const renderTaskMeta = (task: LearningTaskResponse) => {
-  let statusText = "待开始";
-  let color: "default" | "processing" | "success" = "default";
-  if (task.status === "done") {
-    statusText = "已完成";
-    color = "success";
-  } else if (task.status === "in-progress") {
-    statusText = "进行中";
-    color = "processing";
-  }
-  return (
-    <Space size={8} wrap>
-      <Tag color={color}>状态：{statusText}</Tag>
-      {task.dueDate ? (
-        <Tag bordered={false}>
-          截止：{new Date(task.dueDate).toLocaleDateString()}
-        </Tag>
-      ) : null}
-    </Space>
+const PlanCard = ({
+  plan,
+  onEdit,
+  onAddTask,
+  onToggleTask,
+}: {
+  readonly plan: PlanResponse;
+  readonly onEdit: (plan: PlanResponse) => void;
+  readonly onAddTask: (plan: PlanResponse) => void;
+  readonly onToggleTask: (
+    planId: string,
+    taskId: string,
+    currentStatus: string
+  ) => void;
+}) => {
+  const completion = Math.round(
+    plan.targetSteps > 0
+      ? (plan.completedSteps / plan.targetSteps) * PERCENTAGE_MULTIPLIER
+      : 0
   );
-};
 
-const PlanCard = ({ plan }: { readonly plan: LearningPlanResponse }) => {
-  const completion =
-    plan.targetSteps === 0
-      ? 0
-      : Math.round(
-          (plan.completedSteps / plan.targetSteps) * PERCENTAGE_MULTIPLIER
-        );
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "green";
+      case "active":
+        return "blue";
+      default:
+        return "default";
+    }
+  };
+
+  const getTaskStatusColor = (status: string) => {
+    switch (status) {
+      case "done":
+        return "green";
+      case "in_progress":
+        return "blue";
+      default:
+        return "default";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "已完成";
+      case "active":
+        return "进行中";
+      default:
+        return "待开始";
+    }
+  };
+
+  const getTaskStatusText = (status: string) => {
+    switch (status) {
+      case "done":
+        return "已完成";
+      case "in_progress":
+        return "进行中";
+      default:
+        return "待开始";
+    }
+  };
+
   return (
     <Card
       actions={[
-        plan.sessionId ? (
-          <Link
-            href={{ pathname: "/chat", query: { session: plan.sessionId } }}
-            key={`${plan.id}-link`}
-          >
-            查看对应对话
-          </Link>
-        ) : null,
+        <Button key="edit" onClick={() => onEdit(plan)} type="link">
+          编辑计划
+        </Button>,
+        <Button key="add" onClick={() => onAddTask(plan)} type="link">
+          添加任务
+        </Button>,
       ]}
-      title={plan.title}
-    >
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Space size={12} wrap>
-          <Tag bordered={false}>目标：{plan.focus}</Tag>
-          {plan.dueDate ? (
-            <Tag bordered={false}>
-              截止：{new Date(plan.dueDate).toLocaleDateString()}
-            </Tag>
-          ) : null}
-          <Tag bordered={false} color="processing">
-            进度：{plan.completedSteps}/{plan.targetSteps}
+      style={{ marginBottom: 16 }}
+      title={
+        <Space>
+          <span>{plan.title}</span>
+          <Tag color={getStatusColor(plan.status)}>
+            {getStatusText(plan.status)}
           </Tag>
         </Space>
-        <Progress
-          aria-label={`${plan.title} 当前完成进度 ${completion}%`}
-          percent={completion}
-          showInfo
-        />
-        <List
-          dataSource={plan.tasks}
-          locale={{ emptyText: "暂无任务" }}
-          renderItem={(task) => (
-            <List.Item key={task.id}>
-              <Space direction="vertical" size={4} style={{ width: "100%" }}>
-                <Typography.Text>{task.summary}</Typography.Text>
-                {renderTaskMeta(task)}
-              </Space>
-            </List.Item>
-          )}
-        />
+      }
+    >
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <div>
+          <Text strong>学习焦点</Text>
+          <Paragraph style={{ marginBottom: 0, marginTop: 8 }}>
+            {plan.focus}
+          </Paragraph>
+        </div>
+
+        {plan.dueDate ? (
+          <Tag bordered={false}>
+            截止日期：{dayjs(plan.dueDate).format("YYYY-MM-DD")}
+          </Tag>
+        ) : null}
+
+        <div>
+          <div
+            style={{
+              alignItems: "center",
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 8,
+            }}
+          >
+            <Text strong>学习进度</Text>
+            <Text>
+              {plan.completedSteps} / {plan.targetSteps}
+            </Text>
+          </div>
+          <Progress percent={completion} showInfo />
+        </div>
+
+        <div>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            任务列表
+          </Text>
+          <List
+            dataSource={[...plan.tasks]}
+            locale={{ emptyText: "暂无任务" }}
+            renderItem={(task) => (
+              <List.Item
+                actions={[
+                  <Tag color={getTaskStatusColor(task.status)} key="status">
+                    {getTaskStatusText(task.status)}
+                  </Tag>,
+                ]}
+                key={task.id}
+              >
+                <Checkbox
+                  checked={task.status === "done"}
+                  onChange={() => onToggleTask(plan.id, task.id, task.status)}
+                >
+                  <span
+                    style={{
+                      textDecoration:
+                        task.status === "done" ? "line-through" : "none",
+                    }}
+                  >
+                    {task.summary}
+                  </span>
+                </Checkbox>
+              </List.Item>
+            )}
+            size="small"
+          />
+        </div>
       </Space>
     </Card>
   );
 };
 
 const PlanPage = () => {
-  const { status: authStatus } = useAuth();
-  const { data, status, error } = useLearningSummary();
+  const { accessToken, status: authStatus } = useAuth();
+  const { message } = App.useApp();
+
+  const [plans, setPlans] = useState<readonly PlanResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [addTaskModalVisible, setAddTaskModalVisible] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<PlanResponse | null>(null);
+  const [editForm] = Form.useForm();
+  const [taskForm] = Form.useForm();
+
+  const loadPlans = useCallback(async () => {
+    if (!accessToken) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await fetchPlans(accessToken);
+      setPlans(data);
+    } catch {
+      message.error("加载学习计划失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, message]);
+
+  useEffect(() => {
+    if (authStatus === "authenticated") {
+      loadPlans().catch(() => {
+        message.error("加载学习计划失败");
+      });
+    }
+  }, [authStatus, loadPlans, message]);
+
+  const handleEdit = (plan: PlanResponse) => {
+    setCurrentPlan(plan);
+    editForm.setFieldsValue({
+      title: plan.title,
+      focus: plan.focus,
+      status: plan.status,
+      dueDate: plan.dueDate ? dayjs(plan.dueDate) : null,
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleAddTask = (plan: PlanResponse) => {
+    setCurrentPlan(plan);
+    taskForm.resetFields();
+    setAddTaskModalVisible(true);
+  };
+
+  const handleToggleTask = async (
+    planId: string,
+    taskId: string,
+    currentStatus: string
+  ) => {
+    if (!accessToken) {
+      return;
+    }
+
+    try {
+      if (currentStatus === "done") {
+        // 如果任务已完成，将其标记为进行中
+        await updatePlanTask(accessToken, planId, taskId, {
+          status: "in_progress",
+          completedAt: undefined,
+        });
+      } else {
+        // 否则标记为完成
+        await completeTask(accessToken, planId, taskId);
+      }
+      await loadPlans();
+      message.success("任务状态更新成功");
+    } catch {
+      message.error("更新任务状态失败");
+    }
+  };
+
+  const handleEditSubmit = async (values: UpdatePlanDto) => {
+    if (!(accessToken && currentPlan)) {
+      return;
+    }
+
+    try {
+      await updatePlan(accessToken, currentPlan.id, {
+        ...values,
+        dueDate: values.dueDate
+          ? dayjs(values.dueDate).toISOString()
+          : undefined,
+      });
+      await loadPlans();
+      setEditModalVisible(false);
+      message.success("更新计划成功");
+    } catch {
+      message.error("更新计划失败");
+    }
+  };
+
+  const handleAddTaskSubmit = async (values: CreateTaskDto) => {
+    if (!(accessToken && currentPlan)) {
+      return;
+    }
+
+    try {
+      await addTaskToPlan(accessToken, currentPlan.id, values);
+      await loadPlans();
+      setAddTaskModalVisible(false);
+      message.success("添加任务成功");
+    } catch {
+      message.error("添加任务失败");
+    }
+  };
+
+  if (authStatus === "loading") {
+    return (
+      <div style={{ padding: 24, textAlign: "center" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   if (authStatus !== "authenticated") {
     return (
-      <Space
-        align="center"
-        direction="vertical"
-        style={{ padding: 24, width: "100%" }}
-      >
-        <Alert
-          action={<Link href="/login">前往登录</Link>}
-          message="请登录以查看学习计划"
-          showIcon
-          type="info"
-        />
-      </Space>
+      <Alert
+        description={
+          <div>
+            您需要先登录才能查看学习计划。{" "}
+            <Link href="/login">点击这里登录</Link>
+          </div>
+        }
+        message="请先登录"
+        showIcon
+        type="warning"
+      />
     );
   }
-
-  if (status === "loading" || status === "idle") {
-    return (
-      <Space
-        align="center"
-        direction="vertical"
-        style={{ padding: 24, width: "100%" }}
-      >
-        <Spin size="large" />
-      </Space>
-    );
-  }
-
-  if (error) {
-    return (
-      <Space
-        align="center"
-        direction="vertical"
-        style={{ padding: 24, width: "100%" }}
-      >
-        <Alert message={error} showIcon type="error" />
-      </Space>
-    );
-  }
-
-  const plans = data?.learningPlans ?? [];
 
   return (
-    <Space direction="vertical" size={24} style={{ width: "100%" }}>
-      <Typography.Title level={2}>学习计划总览</Typography.Title>
-      <Typography.Paragraph type="secondary">
-        查看所有学习计划的进度、任务拆解和关联的对话会话。
-      </Typography.Paragraph>
-      {plans.length === 0 ? (
-        <Empty description="暂无学习计划" />
-      ) : (
-        <List
-          dataSource={plans}
-          grid={{ column: 2, gutter: 24 }}
-          renderItem={(plan) => (
-            <List.Item key={plan.id}>
-              <PlanCard plan={plan} />
-            </List.Item>
-          )}
-        />
-      )}
-    </Space>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: 24 }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={2}>我的学习计划</Title>
+      </div>
+
+      <Spin spinning={loading}>
+        {plans.length === 0 ? (
+          <div style={{ textAlign: "center" }}>
+            <Empty description="暂无学习计划" />
+            <div style={{ marginTop: 16 }}>
+              <p>开始一个对话来创建您的第一个学习计划</p>
+              <Link href="/chat">
+                <Button type="primary">开始对话</Button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                onAddTask={handleAddTask}
+                onEdit={handleEdit}
+                onToggleTask={handleToggleTask}
+                plan={plan}
+              />
+            ))}
+          </div>
+        )}
+      </Spin>
+
+      {/* 编辑计划模态框 */}
+      <Modal
+        cancelText="取消"
+        okText="保存"
+        onCancel={() => setEditModalVisible(false)}
+        onOk={() => editForm.submit()}
+        open={editModalVisible}
+        title="编辑学习计划"
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleEditSubmit}>
+          <Form.Item
+            label="计划标题"
+            name="title"
+            rules={[{ required: true, message: "请输入计划标题" }]}
+          >
+            <Input placeholder="请输入计划标题" />
+          </Form.Item>
+          <Form.Item
+            label="学习焦点"
+            name="focus"
+            rules={[{ required: true, message: "请输入学习焦点" }]}
+          >
+            <Input.TextArea placeholder="请输入学习焦点" rows={3} />
+          </Form.Item>
+          <Form.Item
+            label="状态"
+            name="status"
+            rules={[{ required: true, message: "请选择状态" }]}
+          >
+            <Select>
+              <Select.Option value="pending">待开始</Select.Option>
+              <Select.Option value="active">进行中</Select.Option>
+              <Select.Option value="completed">已完成</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item label="截止日期" name="dueDate">
+            <DatePicker style={{ width: "100%" }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 添加任务模态框 */}
+      <Modal
+        cancelText="取消"
+        okText="添加"
+        onCancel={() => setAddTaskModalVisible(false)}
+        onOk={() => taskForm.submit()}
+        open={addTaskModalVisible}
+        title="添加新任务"
+      >
+        <Form form={taskForm} layout="vertical" onFinish={handleAddTaskSubmit}>
+          <Form.Item
+            label="任务描述"
+            name="summary"
+            rules={[{ required: true, message: "请输入任务描述" }]}
+          >
+            <Input placeholder="请输入任务描述" />
+          </Form.Item>
+          <Form.Item label="截止日期" name="dueDate">
+            <DatePicker style={{ width: "100%" }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
   );
 };
 

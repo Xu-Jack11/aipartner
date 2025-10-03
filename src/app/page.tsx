@@ -65,7 +65,7 @@ const LearningPlans = ({
     title="学习计划"
   >
     <List
-      dataSource={plans}
+      dataSource={plans ? [...plans] : []}
       itemLayout="vertical"
       locale={{ emptyText: <Empty description="暂无学习计划" /> }}
       renderItem={(plan) => {

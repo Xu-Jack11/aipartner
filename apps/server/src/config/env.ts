@@ -1,6 +1,6 @@
 import type { AppConfig, NodeEnv } from "../types";
 
-export const DEFAULT_APP_PORT = 4000;
+export const DEFAULT_APP_PORT = 3001;
 
 const missingRequired: string[] = [];
 

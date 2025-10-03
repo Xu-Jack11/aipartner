@@ -9,26 +9,31 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SendMessageDto = void 0;
+exports.GeneratePlanDto = void 0;
+const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
-const CONTENT_MAX_LENGTH = 10000;
-class SendMessageDto {
+class GenerateTaskDto {
 }
-exports.SendMessageDto = SendMessageDto;
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MaxLength)(CONTENT_MAX_LENGTH),
     __metadata("design:type", String)
-], SendMessageDto.prototype, "content", void 0);
+], GenerateTaskDto.prototype, "summary", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], SendMessageDto.prototype, "model", void 0);
+], GenerateTaskDto.prototype, "dueDate", void 0);
+class GeneratePlanDto {
+}
+exports.GeneratePlanDto = GeneratePlanDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], GeneratePlanDto.prototype, "sessionId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
-    (0, class_validator_1.IsString)({ each: true }),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => GenerateTaskDto),
     __metadata("design:type", Array)
-], SendMessageDto.prototype, "tools", void 0);
+], GeneratePlanDto.prototype, "taskSuggestions", void 0);

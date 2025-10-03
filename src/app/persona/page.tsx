@@ -44,7 +44,7 @@ const SessionInsights = ({
 }) => (
   <Card title="对话偏好">
     <List
-      dataSource={sessions}
+      dataSource={sessions ? [...sessions] : []}
       locale={{ emptyText: <Empty description="暂无对话记录" /> }}
       renderItem={(session) => (
         <List.Item key={session.id}>
@@ -73,7 +73,7 @@ const LearningStrategyCard = ({
 }) => (
   <Card title="学习策略建议">
     <List
-      dataSource={plans}
+      dataSource={plans ? [...plans] : []}
       locale={{ emptyText: "暂无学习计划" }}
       renderItem={(plan) => (
         <List.Item key={plan.id}>

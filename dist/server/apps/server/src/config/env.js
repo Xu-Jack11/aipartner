@@ -1,7 +1,8 @@
 "use strict";
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.env = exports.DEFAULT_APP_PORT = void 0;
-exports.DEFAULT_APP_PORT = 4000;
+exports.DEFAULT_APP_PORT = 3001;
 const missingRequired = [];
 const resolveNodeEnv = (value) => {
     if (value === "production" || value === "test" || value === "development") {
@@ -43,6 +44,8 @@ const readNumber = (key, fallback) => {
 const appPort = readNumber("PORT", exports.DEFAULT_APP_PORT);
 const jwtSecret = readRequired("JWT_SECRET", "local-development-secret");
 const jwtExpiresIn = readRequired("JWT_EXPIRES_IN", "1h");
+const openaiApiKey = (_a = process.env.OPENAI_API_KEY) !== null && _a !== void 0 ? _a : "";
+const databaseUrl = readRequired("DATABASE_URL", "");
 if (isProduction && missingRequired.length > 0) {
     throw new Error(`Missing required environment variables: ${missingRequired.join(", ")}`);
 }
@@ -54,8 +57,14 @@ exports.env = Object.freeze({
         jwtExpiresIn,
         jwtSecret,
     },
+    database: {
+        url: databaseUrl,
+    },
     isDevelopment,
     isProduction,
     isTest,
     nodeEnv,
+    openai: {
+        apiKey: openaiApiKey,
+    },
 });

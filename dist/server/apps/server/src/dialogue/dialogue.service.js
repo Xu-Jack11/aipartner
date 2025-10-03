@@ -12,9 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DialogueService = void 0;
 const common_1 = require("@nestjs/common");
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires runtime metadata.
-const prisma_service_1 = require("../prisma/prisma.service");
-// biome-ignore lint/style/useImportType: NestJS dependency injection requires runtime metadata.
 const ai_provider_interface_1 = require("../ai/providers/ai-provider.interface");
+// biome-ignore lint/style/useImportType: NestJS dependency injection requires runtime metadata.
+const prisma_service_1 = require("../prisma/prisma.service");
 let DialogueService = class DialogueService {
     constructor(prismaService, aiProvider) {
         this.prisma = prismaService;
@@ -113,12 +113,44 @@ let DialogueService = class DialogueService {
                 sessionId,
             },
         });
+        // Prepare system message with tool context if tools are requested
+        let systemMessage = "";
+        if (dto.tools && dto.tools.length > 0) {
+            const toolDescriptions = dto.tools
+                .map((tool) => {
+                switch (tool) {
+                    case "web-search": {
+                        return "You have access to web search capabilities to find current information.";
+                    }
+                    case "knowledge-base": {
+                        return "You have access to a knowledge base with domain-specific information.";
+                    }
+                    default: {
+                        return "";
+                    }
+                }
+            })
+                .filter(Boolean)
+                .join(" ");
+            if (toolDescriptions) {
+                systemMessage = `System: ${toolDescriptions}`;
+            }
+        }
         // Generate AI response
         const aiResponse = await this.aiProvider.generateCompletion({
-            messages: messages.map((msg) => ({
-                content: msg.content,
-                role: msg.role,
-            })),
+            messages: systemMessage
+                ? [
+                    { content: systemMessage, role: "system" },
+                    ...messages.map((msg) => ({
+                        content: msg.content,
+                        role: msg.role,
+                    })),
+                ]
+                : messages.map((msg) => ({
+                    content: msg.content,
+                    role: msg.role,
+                })),
+            model: dto.model,
         });
         // Save AI response
         const assistantMessage = await this.prisma.chatMessage.create({
@@ -145,10 +177,27 @@ let DialogueService = class DialogueService {
             role: "assistant",
         };
     }
+    async deleteSession(userId, sessionId) {
+        // Verify session exists and belongs to user
+        const session = await this.prisma.session.findUnique({
+            where: {
+                id: sessionId,
+                userId,
+            },
+        });
+        if (session === null) {
+            throw new common_1.NotFoundException("会话不存在");
+        }
+        // Delete session (cascade will delete messages)
+        await this.prisma.session.delete({
+            where: {
+                id: sessionId,
+            },
+        });
+    }
 };
 exports.DialogueService = DialogueService;
 exports.DialogueService = DialogueService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        ai_provider_interface_1.AiProvider])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService, ai_provider_interface_1.AiProvider])
 ], DialogueService);

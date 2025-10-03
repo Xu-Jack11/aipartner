@@ -9,26 +9,28 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SendMessageDto = void 0;
+exports.UpdateTaskDto = void 0;
 const class_validator_1 = require("class-validator");
-const CONTENT_MAX_LENGTH = 10000;
-class SendMessageDto {
+class UpdateTaskDto {
 }
-exports.SendMessageDto = SendMessageDto;
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MaxLength)(CONTENT_MAX_LENGTH),
-    __metadata("design:type", String)
-], SendMessageDto.prototype, "content", void 0);
+exports.UpdateTaskDto = UpdateTaskDto;
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], SendMessageDto.prototype, "model", void 0);
+], UpdateTaskDto.prototype, "summary", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsArray)(),
-    (0, class_validator_1.IsString)({ each: true }),
-    __metadata("design:type", Array)
-], SendMessageDto.prototype, "tools", void 0);
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateTaskDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], UpdateTaskDto.prototype, "dueDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], UpdateTaskDto.prototype, "completedAt", void 0);

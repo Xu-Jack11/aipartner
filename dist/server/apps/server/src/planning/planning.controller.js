@@ -12,84 +12,92 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DialogueController = void 0;
+exports.PlanningController = void 0;
 const common_1 = require("@nestjs/common");
 const current_user_decorator_1 = require("../common/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../common/guards/jwt-auth.guard");
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires runtime metadata.
-const dialogue_service_1 = require("./dialogue.service");
-// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime.
-const create_session_dto_1 = require("./dto/create-session.dto");
-// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime.
-const send_message_dto_1 = require("./dto/send-message.dto");
-let DialogueController = class DialogueController {
-    constructor(dialogueService) {
-        this.dialogueService = dialogueService;
+const planning_service_1 = require("./planning.service");
+let PlanningController = class PlanningController {
+    constructor(planningService) {
+        this.planningService = planningService;
     }
-    listSessions(user) {
-        return this.dialogueService.listSessions(user.id);
+    async listPlans(user) {
+        return await this.planningService.listPlans(user.id);
     }
-    createSession(user, dto) {
-        return this.dialogueService.createSession(user.id, dto);
+    async createPlan(user, dto) {
+        return await this.planningService.createPlan(user.id, dto);
     }
-    getSession(user, sessionId) {
-        return this.dialogueService.getSession(user.id, sessionId);
+    async generatePlan(user, dto) {
+        return await this.planningService.generatePlanFromSession(user.id, dto);
     }
-    sendMessage(user, sessionId, dto) {
-        return this.dialogueService.sendMessage(user.id, sessionId, dto);
+    async updatePlan(user, planId, dto) {
+        return await this.planningService.updatePlan(user.id, planId, dto);
     }
-    deleteSession(user, sessionId) {
-        return this.dialogueService.deleteSession(user.id, sessionId);
+    async addTask(user, planId, dto) {
+        return await this.planningService.addTask(user.id, planId, dto);
+    }
+    async updateTask(user, planId, taskId, dto) {
+        return await this.planningService.updateTask(user.id, planId, taskId, dto);
     }
 };
-exports.DialogueController = DialogueController;
+exports.PlanningController = PlanningController;
 __decorate([
-    (0, common_1.Get)("sessions"),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.Get)(),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], DialogueController.prototype, "listSessions", null);
+], PlanningController.prototype, "listPlans", null);
 __decorate([
-    (0, common_1.Post)("sessions"),
+    (0, common_1.Post)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, create_session_dto_1.CreateSessionDto]),
+    __metadata("design:paramtypes", [Object, Function]),
     __metadata("design:returntype", Promise)
-], DialogueController.prototype, "createSession", null);
+], PlanningController.prototype, "createPlan", null);
 __decorate([
-    (0, common_1.Get)("sessions/:id"),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.Post)("generate"),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Function]),
+    __metadata("design:returntype", Promise)
+], PlanningController.prototype, "generatePlan", null);
+__decorate([
+    (0, common_1.Patch)(":id"),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)("id")),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, String, Function]),
     __metadata("design:returntype", Promise)
-], DialogueController.prototype, "getSession", null);
+], PlanningController.prototype, "updatePlan", null);
 __decorate([
-    (0, common_1.Post)("sessions/:id/messages"),
+    (0, common_1.Post)(":id/tasks"),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)("id")),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, send_message_dto_1.SendMessageDto]),
+    __metadata("design:paramtypes", [Object, String, Function]),
     __metadata("design:returntype", Promise)
-], DialogueController.prototype, "sendMessage", null);
+], PlanningController.prototype, "addTask", null);
 __decorate([
-    (0, common_1.Delete)("sessions/:id"),
-    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    (0, common_1.Patch)(":id/tasks/:taskId"),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)("id")),
+    __param(2, (0, common_1.Param)("taskId")),
+    __param(3, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, String, String, Function]),
     __metadata("design:returntype", Promise)
-], DialogueController.prototype, "deleteSession", null);
-exports.DialogueController = DialogueController = __decorate([
-    (0, common_1.Controller)({ path: "dialogue", version: "1" }),
+], PlanningController.prototype, "updateTask", null);
+exports.PlanningController = PlanningController = __decorate([
+    (0, common_1.Controller)({ path: "plans", version: "1" }),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __metadata("design:paramtypes", [dialogue_service_1.DialogueService])
-], DialogueController);
+    __metadata("design:paramtypes", [planning_service_1.PlanningService])
+], PlanningController);
