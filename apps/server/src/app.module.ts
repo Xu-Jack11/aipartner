@@ -6,6 +6,7 @@ import { DialogueModule } from "./dialogue/dialogue.module";
 import { LearningModule } from "./learning/learning.module";
 import { PlanningModule } from "./planning/planning.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { ProgressModule } from "./progress/progress.module";
 import { UsersModule } from "./users/users.module";
 
 @Module({
@@ -21,6 +22,7 @@ import { UsersModule } from "./users/users.module";
     LearningModule,
     DialogueModule,
     PlanningModule,
+    ProgressModule,
   ],
 })
 export class AppModule {}

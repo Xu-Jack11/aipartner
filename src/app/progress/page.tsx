@@ -14,19 +14,16 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import Link from "next/link";
-import type {
-  LearningPlanResponse,
-  StudySessionResponse,
-} from "@/lib/api/learning";
+import type { StudySessionResponse } from "@/lib/api/progress";
 import { useAuth } from "@/lib/auth-context";
-import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
+import { useProgressStats } from "@/lib/hooks/use-progress-stats";
 
-const PERCENTAGE_MULTIPLIER = 100;
+const MINUTES_PER_HOUR = 60;
 
 const sessionColumns: ColumnsType<StudySessionResponse> = [
   {
-    dataIndex: "date",
-    key: "date",
+    dataIndex: "recordedAt",
+    key: "recordedAt",
     render: (value: string) => new Date(value).toLocaleDateString(),
     title: "日期",
   },
@@ -38,47 +35,15 @@ const sessionColumns: ColumnsType<StudySessionResponse> = [
   {
     dataIndex: "minutes",
     key: "minutes",
-    render: (minutes: number) => `${Math.round((minutes / 60) * 10) / 10} 小时`,
+    render: (minutes: number) =>
+      `${Math.round((minutes / MINUTES_PER_HOUR) * 10) / 10} 小时`,
     title: "学习时长",
   },
 ];
 
-const PlanProgressList = ({
-  plans,
-}: {
-  readonly plans: readonly LearningPlanResponse[];
-}) => (
-  <Space direction="vertical" size={16} style={{ width: "100%" }}>
-    {plans.map((plan) => {
-      const completion =
-        plan.targetSteps === 0
-          ? 0
-          : Math.round(
-              (plan.completedSteps / plan.targetSteps) * PERCENTAGE_MULTIPLIER
-            );
-      return (
-        <Card key={plan.id} title={plan.title}>
-          <Space direction="vertical" size={8} style={{ width: "100%" }}>
-            <Typography.Text type="secondary">
-              {plan.focus} ·
-              {plan.dueDate
-                ? `截止 ${new Date(plan.dueDate).toLocaleDateString()}`
-                : "无截止日期"}
-            </Typography.Text>
-            <Typography.Text>
-              已完成 {plan.completedSteps}/{plan.targetSteps}
-            </Typography.Text>
-            <Typography.Text>完成度：{completion}%</Typography.Text>
-          </Space>
-        </Card>
-      );
-    })}
-  </Space>
-);
-
 const ProgressPage = () => {
   const { status: authStatus } = useAuth();
-  const { data, status, error } = useLearningSummary();
+  const { data, status, error } = useProgressStats();
 
   if (authStatus !== "authenticated") {
     return (
@@ -109,7 +74,7 @@ const ProgressPage = () => {
     );
   }
 
-  if (error) {
+  if (error !== null) {
     return (
       <Space
         align="center"
@@ -121,16 +86,17 @@ const ProgressPage = () => {
     );
   }
 
-  const plans = data?.learningPlans ?? [];
-  const studySessions = data?.studySessions ?? [];
-  const metrics = data?.metrics ?? {
-    streakDays: 0,
-    totalCompletedSteps: 0,
-    weeklyHours: 0,
-  };
+  const recentSessions = data?.recentSessions ?? [];
+  const weeklyHours = data
+    ? Math.round((data.weeklyStudyMinutes / MINUTES_PER_HOUR) * 10) / 10
+    : 0;
 
   return (
-    <Space direction="vertical" size={24} style={{ width: "100%" }}>
+    <Space
+      direction="vertical"
+      size={24}
+      style={{ padding: 24, width: "100%" }}
+    >
       <Typography.Title level={2}>学习进度</Typography.Title>
       <Typography.Paragraph type="secondary">
         了解近期学习投入、计划完成情况与任务完成总览。
@@ -141,7 +107,7 @@ const ProgressPage = () => {
             <Statistic
               suffix="小时"
               title="近一周学习时长"
-              value={metrics.weeklyHours}
+              value={weeklyHours}
             />
           </Card>
         </Col>
@@ -150,7 +116,7 @@ const ProgressPage = () => {
             <Statistic
               suffix="项"
               title="累计完成任务"
-              value={metrics.totalCompletedSteps}
+              value={data?.totalCompletedTasks ?? 0}
             />
           </Card>
         </Col>
@@ -159,29 +125,59 @@ const ProgressPage = () => {
             <Statistic
               suffix="天"
               title="连续学习天数"
-              value={metrics.streakDays}
+              value={data?.streakDays ?? 0}
             />
           </Card>
         </Col>
       </Row>
       <Row gutter={[24, 24]}>
         <Col lg={14} xs={24}>
-          <Card title="计划完成度">
-            {plans.length === 0 ? (
-              <Empty description="暂无学习计划" />
-            ) : (
-              <PlanProgressList plans={plans} />
-            )}
+          <Card title="学习统计">
+            <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              <Statistic
+                suffix="天"
+                title="活跃学习天数"
+                value={data?.activeDays ?? 0}
+              />
+              <Statistic
+                precision={1}
+                suffix="分钟"
+                title="平均每日学习时长"
+                value={data?.avgDailyMinutes ?? 0}
+              />
+              <Statistic
+                suffix="小时"
+                title="本月学习时长"
+                value={
+                  data
+                    ? Math.round(
+                        (data.monthlyStudyMinutes / MINUTES_PER_HOUR) * 10
+                      ) / 10
+                    : 0
+                }
+              />
+              <Statistic
+                suffix="小时"
+                title="总学习时长"
+                value={
+                  data
+                    ? Math.round(
+                        (data.totalStudyMinutes / MINUTES_PER_HOUR) * 10
+                      ) / 10
+                    : 0
+                }
+              />
+            </Space>
           </Card>
         </Col>
         <Col lg={10} xs={24}>
-          <Card title="学习会话记录">
+          <Card title="最近学习记录">
             <Table
               aria-label="学习会话记录表"
               columns={sessionColumns}
-              dataSource={studySessions}
+              dataSource={[...recentSessions]}
               locale={{ emptyText: <Empty description="暂无记录" /> }}
-              pagination={false}
+              pagination={{ pageSize: 10 }}
               rowKey={(session) => session.id}
               size="small"
             />

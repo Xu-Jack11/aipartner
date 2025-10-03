@@ -16,6 +16,16 @@ exports.PlanningController = void 0;
 const common_1 = require("@nestjs/common");
 const current_user_decorator_1 = require("../common/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../common/guards/jwt-auth.guard");
+// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime for DTO validation
+const create_plan_dto_1 = require("./dto/create-plan.dto");
+// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime for DTO validation
+const create_task_dto_1 = require("./dto/create-task.dto");
+// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime for DTO validation
+const generate_plan_dto_1 = require("./dto/generate-plan.dto");
+// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime for DTO validation
+const update_plan_dto_1 = require("./dto/update-plan.dto");
+// biome-ignore lint/style/useImportType: ValidationPipe requires class metadata at runtime for DTO validation
+const update_task_dto_1 = require("./dto/update-task.dto");
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires runtime metadata.
 const planning_service_1 = require("./planning.service");
 let PlanningController = class PlanningController {
@@ -40,6 +50,9 @@ let PlanningController = class PlanningController {
     async updateTask(user, planId, taskId, dto) {
         return await this.planningService.updateTask(user.id, planId, taskId, dto);
     }
+    async deletePlan(user, planId) {
+        await this.planningService.deletePlan(user.id, planId);
+    }
 };
 exports.PlanningController = PlanningController;
 __decorate([
@@ -55,7 +68,7 @@ __decorate([
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Function]),
+    __metadata("design:paramtypes", [Object, create_plan_dto_1.CreatePlanDto]),
     __metadata("design:returntype", Promise)
 ], PlanningController.prototype, "createPlan", null);
 __decorate([
@@ -64,7 +77,7 @@ __decorate([
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Function]),
+    __metadata("design:paramtypes", [Object, generate_plan_dto_1.GeneratePlanDto]),
     __metadata("design:returntype", Promise)
 ], PlanningController.prototype, "generatePlan", null);
 __decorate([
@@ -73,7 +86,7 @@ __decorate([
     __param(1, (0, common_1.Param)("id")),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Function]),
+    __metadata("design:paramtypes", [Object, String, update_plan_dto_1.UpdatePlanDto]),
     __metadata("design:returntype", Promise)
 ], PlanningController.prototype, "updatePlan", null);
 __decorate([
@@ -83,7 +96,7 @@ __decorate([
     __param(1, (0, common_1.Param)("id")),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Function]),
+    __metadata("design:paramtypes", [Object, String, create_task_dto_1.CreateTaskDto]),
     __metadata("design:returntype", Promise)
 ], PlanningController.prototype, "addTask", null);
 __decorate([
@@ -93,9 +106,18 @@ __decorate([
     __param(2, (0, common_1.Param)("taskId")),
     __param(3, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String, Function]),
+    __metadata("design:paramtypes", [Object, String, String, update_task_dto_1.UpdateTaskDto]),
     __metadata("design:returntype", Promise)
 ], PlanningController.prototype, "updateTask", null);
+__decorate([
+    (0, common_1.Delete)(":id"),
+    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)("id")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], PlanningController.prototype, "deletePlan", null);
 exports.PlanningController = PlanningController = __decorate([
     (0, common_1.Controller)({ path: "plans", version: "1" }),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

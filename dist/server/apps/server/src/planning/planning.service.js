@@ -232,7 +232,16 @@ ${conversationSummary}
         // 检查状态变化
         const wasCompleted = task.status === "done";
         const nowCompleted = dto.status === "done";
-        const completedStepsChange = !wasCompleted && nowCompleted ? 1 : 0;
+        // 计算完成步骤的变化量
+        let completedStepsChange = 0;
+        if (!wasCompleted && nowCompleted) {
+            // 从未完成变为完成，增加1
+            completedStepsChange = 1;
+        }
+        else if (wasCompleted && !nowCompleted) {
+            // 从完成变为未完成，减少1
+            completedStepsChange = -1;
+        }
         // 更新任务
         await this.prisma.task.update({
             data: {
@@ -245,7 +254,7 @@ ${conversationSummary}
         });
         // 如果任务完成状态改变，更新计划的完成步骤数
         let updatedPlan = plan;
-        if (completedStepsChange > 0) {
+        if (completedStepsChange !== 0) {
             updatedPlan = await this.prisma.plan.update({
                 data: {
                     completedSteps: {
@@ -271,6 +280,22 @@ ${conversationSummary}
             });
         }
         return this.toPlanResponse(updatedPlan);
+    }
+    async deletePlan(userId, planId) {
+        // 验证计划存在且属于当前用户
+        const plan = await this.prisma.plan.findFirst({
+            where: {
+                id: planId,
+                userId,
+            },
+        });
+        if (plan === null) {
+            throw new common_1.NotFoundException("学习计划不存在");
+        }
+        // 删除计划(级联删除关联的任务)
+        await this.prisma.plan.delete({
+            where: { id: planId },
+        });
     }
     toPlanResponse(plan) {
         var _a, _b;
