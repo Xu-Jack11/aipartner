@@ -11,7 +11,7 @@ import type {
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires runtime metadata.
 import { ProgressService } from "./progress.service";
 
-@Controller("v1/progress")
+@Controller("progress")
 @UseGuards(JwtAuthGuard)
 export class ProgressController {
   constructor(progressService: ProgressService) {
