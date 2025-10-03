@@ -15,17 +15,39 @@ import {
   Typography,
 } from "antd";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import type { CSSProperties } from "react";
-import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { CSSProperties, KeyboardEvent } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import type { MessageResponse } from "@/lib/api/dialogue";
+import {
+  createSession,
+  sendMessage as sendMessageApi,
+} from "@/lib/api/dialogue";
 import type {
   ChatSessionResponse,
   LearningPlanResponse,
 } from "@/lib/api/learning";
 import { useAuth } from "@/lib/auth-context";
 import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
+import { useSessionMessages } from "@/lib/hooks/use-session-messages";
 
 const PERCENTAGE_MULTIPLIER = 100;
+const TEMP_SESSION_PREFIX = "temp-";
+
+type TempSession = {
+  id: string;
+  title: string;
+  focus: string;
+  isTemp: true;
+  messages: MessageResponse[];
+};
+
+type ActiveSession = ChatSessionResponse | TempSession;
+
+const isTempSession = (
+  session: ActiveSession | undefined
+): session is TempSession =>
+  session !== undefined && "isTemp" in session && session.isTemp;
 
 const conversationActions = [
   {
@@ -82,12 +104,22 @@ const calculateTaskCompletion = (
 const ChatSidebar = ({
   sessions,
   activeSessionId,
+  onNewChat,
 }: {
   readonly sessions: readonly ChatSessionResponse[];
   readonly activeSessionId: string;
+  readonly onNewChat: () => void;
 }) => (
   <section aria-label="历史对话" className="chat-section chat-section--left">
-    <Card title="历史对话" variant="borderless">
+    <Card
+      extra={
+        <Button onClick={onNewChat} size="small" type="primary">
+          新建对话
+        </Button>
+      }
+      title="历史对话"
+      variant="borderless"
+    >
       <List
         dataSource={sessions}
         locale={{ emptyText: "暂无对话" }}
@@ -178,66 +210,231 @@ const ChatTaskList = ({ plan }: { readonly plan?: LearningPlanResponse }) => {
   );
 };
 
+const MessageList = ({
+  messages,
+  isLoading,
+}: {
+  readonly messages: readonly MessageResponse[];
+  readonly isLoading: boolean;
+}) => {
+  if (isLoading) {
+    return (
+      <Card>
+        <div style={messageContainerStyle}>
+          <Spin size="large" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <Card>
+        <div style={messageContainerStyle}>
+          <Typography.Text type="secondary">
+            开始您的对话，问我任何学习相关的问题吧！
+          </Typography.Text>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <List
+        dataSource={[...messages]}
+        renderItem={(message) => (
+          <List.Item key={message.id}>
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Space align="center" size={8}>
+                <Tag color={message.role === "user" ? "blue" : "green"}>
+                  {message.role === "user" ? "我" : "AI助手"}
+                </Tag>
+                <Typography.Text type="secondary">
+                  {new Date(message.createdAt).toLocaleString()}
+                </Typography.Text>
+              </Space>
+              <Typography.Paragraph style={{ marginBottom: 0 }}>
+                {message.content}
+              </Typography.Paragraph>
+            </Space>
+          </List.Item>
+        )}
+      />
+    </Card>
+  );
+};
+
 const ChatComposer = ({
   model,
   onModelChange,
+  onSendMessage,
+  isSending,
+  disabled,
 }: {
   readonly model: string;
   readonly onModelChange: (value: string) => void;
-}) => (
-  <Card>
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
-      <Space align="center" size={12} wrap>
-        <Select
-          aria-label="选择对话模型"
-          onChange={onModelChange}
-          options={modelOptions}
-          style={{ minWidth: 180 }}
-          value={model}
+  readonly onSendMessage: (
+    content: string,
+    options?: { readonly model?: string; readonly tools?: readonly string[] }
+  ) => void;
+  readonly isSending: boolean;
+  readonly disabled?: boolean;
+}) => {
+  const [inputValue, setInputValue] = useState("");
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
+
+  const handleSend = () => {
+    const trimmedValue = inputValue.trim();
+    if (trimmedValue && !isSending && !disabled) {
+      onSendMessage(trimmedValue, {
+        model,
+        tools: selectedTools.length > 0 ? selectedTools : undefined,
+      });
+      setInputValue("");
+      setSelectedTools([]);
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleToolClick = (toolKey: string) => {
+    setSelectedTools((prev) => {
+      if (prev.includes(toolKey)) {
+        return prev.filter((t) => t !== toolKey);
+      }
+      return [...prev, toolKey];
+    });
+  };
+
+  return (
+    <Card>
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Space align="center" size={12} wrap>
+          <Select
+            aria-label="选择对话模型"
+            disabled={disabled}
+            onChange={onModelChange}
+            options={modelOptions}
+            style={{ minWidth: 180 }}
+            value={model}
+          />
+          {conversationActions.map((action) => (
+            <Button
+              aria-label={`${action.label}:${action.description}`}
+              disabled={disabled}
+              htmlType="button"
+              icon={action.icon}
+              key={action.key}
+              onClick={() => {
+                handleToolClick(action.key);
+              }}
+              type={selectedTools.includes(action.key) ? "primary" : "default"}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </Space>
+        <Input.TextArea
+          disabled={disabled}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={
+            disabled
+              ? "请先创建或选择一个对话..."
+              : "请输入你的问题或学习内容... (Shift+Enter 换行)"
+          }
+          rows={4}
+          value={inputValue}
         />
-        {conversationActions.map((action) => (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <Button
-            aria-label={`${action.label}:${action.description}`}
+            disabled={disabled || isSending || !inputValue.trim()}
             htmlType="button"
-            icon={action.icon}
-            key={action.key}
-            type="default"
+            loading={isSending}
+            onClick={handleSend}
+            type="primary"
           >
-            {action.label}
+            发送
           </Button>
-        ))}
+        </div>
       </Space>
-      <Input.TextArea placeholder="请输入你的问题或学习内容..." rows={4} />
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button htmlType="button" type="primary">
-          发送
-        </Button>
-      </div>
-    </Space>
-  </Card>
-);
+    </Card>
+  );
+};
 
 const ChatContent = () => {
-  const { status: authStatus } = useAuth();
-  const { data, status, error } = useLearningSummary();
+  const { status: authStatus, accessToken } = useAuth();
+  const { data, status, error, refetch } = useLearningSummary();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [model, setModel] = useState(modelOptions[0].value);
+  const [tempSession, setTempSession] = useState<TempSession | null>(null);
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   const sessions = data?.chatSessions ?? [];
-  const fallbackSession = sessions.length > 0 ? sessions[0] : undefined;
-  const activeSessionId =
-    searchParams.get("session") ?? fallbackSession?.id ?? "";
-  const activeSession = useMemo(() => {
+
+  // 创建临时会话
+  const createTempSession = useCallback((): TempSession => {
+    const tempId = `${TEMP_SESSION_PREFIX}${Date.now()}`;
+    return {
+      focus: "通用",
+      id: tempId,
+      isTemp: true,
+      messages: [],
+      title: "新对话",
+    };
+  }, []);
+
+  // 初始化:如果没有会话且没有临时会话,创建一个临时会话
+  useEffect(() => {
+    const sessionId = searchParams.get("session");
+    const shouldCreateTemp =
+      sessionId === null && tempSession === null && sessions.length === 0;
+    if (shouldCreateTemp) {
+      setTempSession(createTempSession());
+    }
+  }, [searchParams, tempSession, sessions.length, createTempSession]);
+
+  // 处理新建对话
+  const handleNewChat = useCallback(() => {
+    const newTemp = createTempSession();
+    setTempSession(newTemp);
+    router.push(`/chat?session=${newTemp.id}`);
+  }, [createTempSession, router]);
+
+  // 确定当前活动会话
+  const activeSessionId = searchParams.get("session") ?? tempSession?.id ?? "";
+  const activeSession: ActiveSession | undefined = useMemo(() => {
+    if (!activeSessionId) {
+      return;
+    }
+
+    // 检查是否是临时会话
+    if (activeSessionId.startsWith(TEMP_SESSION_PREFIX)) {
+      return tempSession ?? undefined;
+    }
+
+    // 查找真实会话
     for (const session of sessions) {
       if (session.id === activeSessionId) {
         return session;
       }
     }
-    return fallbackSession;
-  }, [activeSessionId, fallbackSession, sessions]);
+    return;
+  }, [activeSessionId, sessions, tempSession]);
+
+  const isTemp = isTempSession(activeSession);
 
   const activePlan = useMemo(() => {
-    if (!(activeSession && data)) {
+    if (!(activeSession && data && !isTemp)) {
       return;
     }
     for (const plan of data.learningPlans) {
@@ -246,7 +443,68 @@ const ChatContent = () => {
       }
     }
     return;
-  }, [activeSession, data]);
+  }, [activeSession, data, isTemp]);
+
+  const {
+    messages: realMessages,
+    isLoading: isLoadingMessages,
+    error: messagesError,
+    sendMessage: sendRealMessage,
+    isSending,
+  } = useSessionMessages(isTemp ? undefined : activeSession?.id);
+
+  // 临时会话的消息
+  const messages = isTemp && tempSession ? tempSession.messages : realMessages;
+
+  // 处理发送消息
+  const handleSendMessage = useCallback(
+    async (
+      content: string,
+      options?: { readonly model?: string; readonly tools?: readonly string[] }
+    ) => {
+      const canSend = activeSession !== undefined && accessToken !== undefined;
+      if (!canSend) {
+        return;
+      }
+
+      if (isTempSession(activeSession)) {
+        // 临时会话:先创建真实会话,然后发送消息
+        setIsCreatingSession(true);
+        try {
+          // 1. 创建真实会话(使用默认标题)
+          const newSession = await createSession(accessToken, {
+            focus: activeSession.focus,
+            title: "新对话", // 使用默认标题,后续可由AI总结更新
+          });
+
+          // 2. 发送消息到新会话
+          await sendMessageApi(accessToken, newSession.id, {
+            content,
+            model: options?.model,
+            tools: options?.tools,
+          });
+
+          // 3. 清除临时会话
+          setTempSession(null);
+
+          // 4. 刷新会话列表(等待完成,确保新会话在列表中)
+          await refetch();
+
+          // 5. 跳转到新会话(不重载页面)
+          router.push(`/chat?session=${newSession.id}`);
+        } catch {
+          // 创建会话或发送消息失败
+          // 可以在这里显示错误提示
+        } finally {
+          setIsCreatingSession(false);
+        }
+      } else {
+        // 真实会话:直接发送
+        await sendRealMessage(content, options);
+      }
+    },
+    [activeSession, accessToken, refetch, router, sendRealMessage]
+  );
 
   if (authStatus !== "authenticated") {
     return (
@@ -289,35 +547,43 @@ const ChatContent = () => {
     );
   }
 
-  if (!activeSession) {
-    return (
-      <Space
-        align="center"
-        direction="vertical"
-        style={{ padding: 24, width: "100%" }}
-      >
-        <Alert message="暂无对话记录" showIcon type="info" />
-      </Space>
-    );
-  }
-
+  // 显示完整的对话界面
   return (
     <div className="chat-layout">
-      <ChatSidebar activeSessionId={activeSession.id} sessions={sessions} />
+      <ChatSidebar
+        activeSessionId={activeSession?.id ?? ""}
+        onNewChat={handleNewChat}
+        sessions={sessions}
+      />
       <section
         aria-label="对话内容"
         className="chat-section chat-section--center"
       >
         <Space direction="vertical" size={24} style={{ width: "100%" }}>
-          <Typography.Title level={3}>{activeSession.title}</Typography.Title>
-          <Card>
-            <div style={messageContainerStyle}>
-              <Typography.Text type="secondary">
-                聊天内容即将上线，敬请期待。
-              </Typography.Text>
-            </div>
-          </Card>
-          <ChatComposer model={model} onModelChange={setModel} />
+          <Typography.Title level={3}>
+            {activeSession?.title ?? "AI学习助手"}
+          </Typography.Title>
+          {isTemp ? (
+            <Alert
+              message="这是一个新对话,发送第一条消息后将自动保存"
+              showIcon
+              type="info"
+            />
+          ) : null}
+          {messagesError ? (
+            <Alert message={messagesError} showIcon type="error" />
+          ) : null}
+          <MessageList
+            isLoading={isLoadingMessages && !isTemp}
+            messages={messages}
+          />
+          <ChatComposer
+            disabled={isCreatingSession}
+            isSending={isSending || isCreatingSession}
+            model={model}
+            onModelChange={setModel}
+            onSendMessage={handleSendMessage}
+          />
         </Space>
       </section>
       <ChatTaskList plan={activePlan} />

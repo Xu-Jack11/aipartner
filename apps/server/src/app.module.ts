@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AuthModule } from "./auth/auth.module";
 import { env } from "./config/env";
+import { DialogueModule } from "./dialogue/dialogue.module";
 import { LearningModule } from "./learning/learning.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
@@ -17,6 +18,7 @@ import { UsersModule } from "./users/users.module";
     UsersModule,
     AuthModule,
     LearningModule,
+    DialogueModule,
   ],
 })
 export class AppModule {}

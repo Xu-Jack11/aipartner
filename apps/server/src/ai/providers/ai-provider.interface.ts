@@ -1,0 +1,22 @@
+export type AiMessage = {
+  readonly role: "system" | "user" | "assistant";
+  readonly content: string;
+};
+
+export type AiCompletionOptions = {
+  readonly messages: readonly AiMessage[];
+  readonly model?: string;
+  readonly temperature?: number;
+  readonly maxTokens?: number;
+};
+
+export type AiCompletionResult = {
+  readonly content: string;
+  readonly tokens?: number;
+};
+
+export abstract class AiProvider {
+  abstract generateCompletion(
+    options: AiCompletionOptions
+  ): Promise<AiCompletionResult>;
+}

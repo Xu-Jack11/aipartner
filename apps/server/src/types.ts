@@ -8,8 +8,14 @@ export type AppConfig = {
     jwtExpiresIn: string;
     jwtSecret: string;
   };
+  database: {
+    url: string;
+  };
   isDevelopment: boolean;
   isProduction: boolean;
   isTest: boolean;
   nodeEnv: NodeEnv;
+  openai: {
+    apiKey: string;
+  };
 };

@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const auth_module_1 = require("./auth/auth.module");
 const env_1 = require("./config/env");
+const dialogue_module_1 = require("./dialogue/dialogue.module");
 const learning_module_1 = require("./learning/learning.module");
 const prisma_module_1 = require("./prisma/prisma.module");
 const users_module_1 = require("./users/users.module");
@@ -29,6 +30,7 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             auth_module_1.AuthModule,
             learning_module_1.LearningModule,
+            dialogue_module_1.DialogueModule,
         ],
     })
 ], AppModule);

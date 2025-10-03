@@ -49,6 +49,8 @@ const readNumber = (key: string, fallback: number): number => {
 const appPort = readNumber("PORT", DEFAULT_APP_PORT);
 const jwtSecret = readRequired("JWT_SECRET", "local-development-secret");
 const jwtExpiresIn = readRequired("JWT_EXPIRES_IN", "1h");
+const openaiApiKey = process.env.OPENAI_API_KEY ?? "";
+const databaseUrl = readRequired("DATABASE_URL", "");
 
 if (isProduction && missingRequired.length > 0) {
   throw new Error(
@@ -64,8 +66,14 @@ export const env: AppConfig = Object.freeze({
     jwtExpiresIn,
     jwtSecret,
   },
+  database: {
+    url: databaseUrl,
+  },
   isDevelopment,
   isProduction,
   isTest,
   nodeEnv,
+  openai: {
+    apiKey: openaiApiKey,
+  },
 });
