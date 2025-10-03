@@ -84,7 +84,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ProgressController.prototype, "getTrend", null);
 exports.ProgressController = ProgressController = __decorate([
-    (0, common_1.Controller)("v1/progress"),
+    (0, common_1.Controller)("progress"),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [progress_service_1.ProgressService])
 ], ProgressController);

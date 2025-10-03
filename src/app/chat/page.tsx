@@ -22,7 +22,7 @@ import {
 } from "antd";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { CSSProperties, KeyboardEvent } from "react";
+import type { KeyboardEvent } from "react";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type { MessageResponse } from "@/lib/api/dialogue";
 import {
@@ -39,6 +39,7 @@ import { generatePlanFromSession } from "@/lib/api/planning";
 import { useAuth } from "@/lib/auth-context";
 import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
 import { useSessionMessages } from "@/lib/hooks/use-session-messages";
+import styles from "./chat.module.css";
 
 const PERCENTAGE_MULTIPLIER = 100;
 const TEMP_SESSION_PREFIX = "temp-";
@@ -89,15 +90,6 @@ const modelOptions = [
     value: "claude-3.5",
   },
 ];
-
-const messageContainerStyle: CSSProperties = {
-  alignItems: "center",
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-  minHeight: 240,
-  justifyContent: "center",
-};
 
 const calculateTaskCompletion = (
   plan: LearningPlanResponse | undefined
@@ -323,7 +315,7 @@ const MessageList = ({
   if (isLoading) {
     return (
       <Card>
-        <div style={messageContainerStyle}>
+        <div className={styles.messageContainer}>
           <Spin size="large" />
         </div>
       </Card>
@@ -333,7 +325,7 @@ const MessageList = ({
   if (messages.length === 0) {
     return (
       <Card>
-        <div style={messageContainerStyle}>
+        <div className={styles.messageContainer}>
           <Typography.Text type="secondary">
             开始您的对话，问我任何学习相关的问题吧！
           </Typography.Text>
@@ -457,7 +449,7 @@ const ChatComposer = ({
           rows={4}
           value={inputValue}
         />
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div className={styles.messageFooter}>
           <Button
             disabled={disabled || isSending || !inputValue.trim()}
             htmlType="button"

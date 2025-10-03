@@ -37,6 +37,7 @@ import type {
   PlanResponse,
   UpdatePlanDto,
 } from "@/types/planning";
+import styles from "./plan.module.css";
 
 const PERCENTAGE_MULTIPLIER = 100;
 const { Title, Text, Paragraph } = Typography;
@@ -167,14 +168,7 @@ const PlanCard = ({
         ) : null}
 
         <div>
-          <div
-            style={{
-              alignItems: "center",
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 8,
-            }}
-          >
+          <div className={styles.progressHeader}>
             <Text strong>学习进度</Text>
             <Text>
               {plan.completedSteps} / {plan.targetSteps}
@@ -204,10 +198,9 @@ const PlanCard = ({
                   onChange={() => onToggleTask(plan.id, task.id, task.status)}
                 >
                   <span
-                    style={{
-                      textDecoration:
-                        task.status === "done" ? "line-through" : "none",
-                    }}
+                    className={
+                      task.status === "done" ? styles.taskCompleted : ""
+                    }
                   >
                     {task.summary}
                   </span>
@@ -376,7 +369,7 @@ const PlanPage = () => {
 
   if (authStatus === "loading") {
     return (
-      <div style={{ padding: 24, textAlign: "center" }}>
+      <div className={styles.emptyState}>
         <Spin size="large" />
       </div>
     );
@@ -399,16 +392,16 @@ const PlanPage = () => {
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: 24 }}>
-      <div style={{ marginBottom: 24 }}>
+    <div className={styles.planContainer}>
+      <div className={styles.planHeader}>
         <Title level={2}>我的学习计划</Title>
       </div>
 
       <Spin spinning={loading}>
         {plans.length === 0 ? (
-          <div style={{ textAlign: "center" }}>
+          <div className={styles.emptyStateContent}>
             <Empty description="暂无学习计划" />
-            <div style={{ marginTop: 16 }}>
+            <div className={styles.emptyStateActions}>
               <p>开始一个对话来创建您的第一个学习计划</p>
               <Link href="/chat">
                 <Button type="primary">开始对话</Button>

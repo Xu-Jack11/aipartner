@@ -1,0 +1,41 @@
+.planContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.planHeader {
+  margin-bottom: 24px;
+}
+
+.emptyState {
+  padding: 24px;
+  text-align: center;
+}
+
+.emptyStateContent {
+  text-align: center;
+}
+
+.emptyStateActions {
+  margin-top: 16px;
+}
+
+.taskStatus {
+  margin-bottom: 16px;
+}
+
+.taskPriority {
+  margin-left: 8px;
+}
+
+.progressHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.taskCompleted {
+  text-decoration: line-through;
+}

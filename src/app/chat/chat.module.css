@@ -1,0 +1,13 @@
+.messageContainer {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 240px;
+  justify-content: center;
+}
+
+.messageFooter {
+  display: flex;
+  justify-content: flex-end;
+}
