@@ -44,6 +44,9 @@ importers:
       class-validator:
         specifier: ^0.14.1
         version: 0.14.2
+      dayjs:
+        specifier: ^1.11.13
+        version: 1.11.18
       next:
         specifier: 15.5.4
         version: 15.5.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
