@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -66,5 +67,14 @@ export class DialogueController {
     @Body() dto: SendMessageDto
   ): Promise<MessageResponse> {
     return this.dialogueService.sendMessage(user.id, sessionId, dto);
+  }
+
+  @Delete("sessions/:id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteSession(
+    @CurrentUser() user: AuthUser,
+    @Param("id") sessionId: string
+  ): Promise<void> {
+    return this.dialogueService.deleteSession(user.id, sessionId);
   }
 }

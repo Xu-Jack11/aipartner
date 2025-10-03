@@ -73,3 +73,12 @@ export const sendMessage = (
     },
     method: "POST",
   });
+
+export const deleteSession = (
+  accessToken: string,
+  sessionId: string
+): Promise<void> =>
+  apiFetch<void>(`v1/dialogue/sessions/${sessionId}`, {
+    accessToken,
+    method: "DELETE",
+  });

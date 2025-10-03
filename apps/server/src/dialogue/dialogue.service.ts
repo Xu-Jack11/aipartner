@@ -204,4 +204,25 @@ export class DialogueService {
       role: "assistant",
     };
   }
+
+  async deleteSession(userId: string, sessionId: string): Promise<void> {
+    // Verify session exists and belongs to user
+    const session = await this.prisma.session.findUnique({
+      where: {
+        id: sessionId,
+        userId,
+      },
+    });
+
+    if (session === null) {
+      throw new NotFoundException("会话不存在");
+    }
+
+    // Delete session (cascade will delete messages)
+    await this.prisma.session.delete({
+      where: {
+        id: sessionId,
+      },
+    });
+  }
 }

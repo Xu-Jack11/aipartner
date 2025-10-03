@@ -34,7 +34,7 @@ model Session {
   studySessions  StudySession[]
   messages       ChatMessage[]
 
-  @@unique([userId, title], name: "sessions_user_title_key")
+  @@index([userId, updatedAt], name: "idx_sessions_user_updated")
 }
 
 model Plan {
@@ -50,7 +50,7 @@ model Plan {
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session        Session?   @relation(fields: [sessionId], references: [id])
+  session        Session?   @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   tasks          Task[]
 
   @@index([userId], name: "idx_plans_user")
@@ -82,7 +82,7 @@ model StudySession {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session    Session? @relation(fields: [sessionId], references: [id])
+  session    Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   @@index([userId, recordedAt], name: "idx_study_sessions_user_recorded")
 }

@@ -2,6 +2,8 @@ const DEFAULT_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
 };
 
+const HTTP_STATUS_NO_CONTENT = 204;
+
 type NextDataWindow = typeof window & {
   readonly __NEXT_DATA__?: {
     readonly props?: {
@@ -51,6 +53,14 @@ export const apiFetch = async <T>(
   if (!response.ok) {
     const message = await safeReadError(response);
     throw new Error(message);
+  }
+
+  // 对于 204 No Content 响应,不尝试解析 JSON
+  if (
+    response.status === HTTP_STATUS_NO_CONTENT ||
+    response.headers.get("content-length") === "0"
+  ) {
+    return undefined as T;
   }
 
   return (await response.json()) as T;

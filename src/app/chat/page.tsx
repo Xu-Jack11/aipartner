@@ -1,8 +1,14 @@
 "use client";
 
-import { BookOutlined, BulbOutlined, GlobalOutlined } from "@ant-design/icons";
+import {
+  BookOutlined,
+  BulbOutlined,
+  DeleteOutlined,
+  GlobalOutlined,
+} from "@ant-design/icons";
 import {
   Alert,
+  App,
   Button,
   Card,
   Input,
@@ -21,6 +27,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type { MessageResponse } from "@/lib/api/dialogue";
 import {
   createSession,
+  deleteSession,
   sendMessage as sendMessageApi,
 } from "@/lib/api/dialogue";
 import type {
@@ -105,56 +112,97 @@ const ChatSidebar = ({
   sessions,
   activeSessionId,
   onNewChat,
+  onDeleteSession,
 }: {
   readonly sessions: readonly ChatSessionResponse[];
   readonly activeSessionId: string;
   readonly onNewChat: () => void;
-}) => (
-  <section aria-label="历史对话" className="chat-section chat-section--left">
-    <Card
-      extra={
-        <Button onClick={onNewChat} size="small" type="primary">
-          新建对话
-        </Button>
-      }
-      title="历史对话"
-      variant="borderless"
-    >
-      <List
-        dataSource={sessions}
-        locale={{ emptyText: "暂无对话" }}
-        renderItem={(session) => {
-          const isActive = session.id === activeSessionId;
-          return (
-            <List.Item
-              key={session.id}
-              style={{
-                background: isActive
-                  ? "rgba(22, 119, 255, 0.16)"
-                  : "transparent",
-                borderRadius: 8,
-                transition: "background-color 0.2s ease",
-              }}
-            >
-              <Space direction="vertical" size={4} style={{ width: "100%" }}>
-                <Link
-                  aria-current={isActive ? "page" : undefined}
-                  href={{ pathname: "/chat", query: { session: session.id } }}
-                >
-                  <Typography.Text strong>{session.title}</Typography.Text>
-                </Link>
-                <Typography.Text type="secondary">
-                  {new Date(session.updatedAt).toLocaleString()} ·{" "}
-                  {session.focus}
-                </Typography.Text>
-              </Space>
-            </List.Item>
-          );
-        }}
-      />
-    </Card>
-  </section>
-);
+  readonly onDeleteSession: (sessionId: string) => void;
+}) => {
+  const { modal } = App.useApp();
+
+  const handleDelete = useCallback(
+    (sessionId: string, sessionTitle: string) => {
+      modal.confirm({
+        cancelText: "取消",
+        content: `确定要删除对话「${sessionTitle}」吗?此操作无法撤销。`,
+        okText: "删除",
+        okType: "danger",
+        onOk: () => {
+          onDeleteSession(sessionId);
+        },
+        title: "删除对话",
+      });
+    },
+    [modal, onDeleteSession]
+  );
+
+  return (
+    <section aria-label="历史对话" className="chat-section chat-section--left">
+      <Card
+        extra={
+          <Button onClick={onNewChat} size="small" type="primary">
+            新建对话
+          </Button>
+        }
+        title="历史对话"
+        variant="borderless"
+      >
+        <List
+          dataSource={[...sessions]}
+          locale={{ emptyText: "暂无对话" }}
+          renderItem={(session) => {
+            const isActive = session.id === activeSessionId;
+            return (
+              <List.Item
+                key={session.id}
+                style={{
+                  background: isActive
+                    ? "rgba(22, 119, 255, 0.16)"
+                    : "transparent",
+                  borderRadius: 8,
+                  transition: "background-color 0.2s ease",
+                }}
+              >
+                <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                  <Space
+                    align="center"
+                    size={8}
+                    style={{ justifyContent: "space-between", width: "100%" }}
+                  >
+                    <Link
+                      aria-current={isActive ? "page" : undefined}
+                      href={{
+                        pathname: "/chat",
+                        query: { session: session.id },
+                      }}
+                    >
+                      <Typography.Text strong>{session.title}</Typography.Text>
+                    </Link>
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDelete(session.id, session.title);
+                      }}
+                      size="small"
+                      type="text"
+                    />
+                  </Space>
+                  <Typography.Text type="secondary">
+                    {new Date(session.updatedAt).toLocaleString()} ·{" "}
+                    {session.focus}
+                  </Typography.Text>
+                </Space>
+              </List.Item>
+            );
+          }}
+        />
+      </Card>
+    </section>
+  );
+};
 
 const ChatTaskList = ({ plan }: { readonly plan?: LearningPlanResponse }) => {
   const completionPercent = calculateTaskCompletion(plan);
@@ -292,7 +340,7 @@ const ChatComposer = ({
         tools: selectedTools.length > 0 ? selectedTools : undefined,
       });
       setInputValue("");
-      setSelectedTools([]);
+      // 保持工具选择状态,不重置
     }
   };
 
@@ -375,6 +423,7 @@ const ChatContent = () => {
   const { data, status, error, refetch } = useLearningSummary();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { message } = App.useApp();
   const [model, setModel] = useState(modelOptions[0].value);
   const [tempSession, setTempSession] = useState<TempSession | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
@@ -471,10 +520,10 @@ const ChatContent = () => {
         // 临时会话:先创建真实会话,然后发送消息
         setIsCreatingSession(true);
         try {
-          // 1. 创建真实会话(使用默认标题)
+          // 1. 创建真实会话(使用默认标题,后续可由AI总结更新)
           const newSession = await createSession(accessToken, {
             focus: activeSession.focus,
-            title: "新对话", // 使用默认标题,后续可由AI总结更新
+            title: "新对话",
           });
 
           // 2. 发送消息到新会话
@@ -504,6 +553,36 @@ const ChatContent = () => {
       }
     },
     [activeSession, accessToken, refetch, router, sendRealMessage]
+  );
+
+  // 删除会话
+  const handleDeleteSession = useCallback(
+    async (sessionId: string) => {
+      if (!accessToken) {
+        message.error("请先登录");
+        return;
+      }
+
+      try {
+        await deleteSession(accessToken, sessionId);
+        message.success("对话已删除");
+
+        // 如果删除的是当前会话,跳转到新建临时会话
+        if (sessionId === activeSession?.id) {
+          handleNewChat();
+        } else {
+          // 否则只刷新列表
+          await refetch();
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "删除对话失败";
+        message.error(errorMessage);
+        // biome-ignore lint/suspicious/noConsole: 需要输出错误信息用于调试
+        console.error("删除会话失败:", err);
+      }
+    },
+    [accessToken, activeSession?.id, handleNewChat, message, refetch]
   );
 
   if (authStatus !== "authenticated") {
@@ -552,6 +631,7 @@ const ChatContent = () => {
     <div className="chat-layout">
       <ChatSidebar
         activeSessionId={activeSession?.id ?? ""}
+        onDeleteSession={handleDeleteSession}
         onNewChat={handleNewChat}
         sessions={sessions}
       />
