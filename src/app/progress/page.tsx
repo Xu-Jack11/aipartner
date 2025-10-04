@@ -5,11 +5,14 @@ import {
   Card,
   Col,
   Empty,
+  List,
+  Progress,
   Row,
   Space,
   Spin,
   Statistic,
   Table,
+  Tag,
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -17,8 +20,12 @@ import Link from "next/link";
 import type { StudySessionResponse } from "@/lib/api/progress";
 import { useAuth } from "@/lib/auth-context";
 import { useProgressStats } from "@/lib/hooks/use-progress-stats";
+import { useProgressTrend } from "@/lib/hooks/use-progress-trend";
 
 const MINUTES_PER_HOUR = 60;
+const TREND_QUERY_DAYS = 30;
+const RECENT_TREND_WINDOW = 7;
+const PERCENTAGE_BASE = 100;
 
 const sessionColumns: ColumnsType<StudySessionResponse> = [
   {
@@ -44,6 +51,11 @@ const sessionColumns: ColumnsType<StudySessionResponse> = [
 const ProgressPage = () => {
   const { status: authStatus } = useAuth();
   const { data, status, error } = useProgressStats();
+  const {
+    data: trend,
+    status: trendStatus,
+    error: trendError,
+  } = useProgressTrend(TREND_QUERY_DAYS);
 
   if (authStatus !== "authenticated") {
     return (
@@ -90,6 +102,102 @@ const ProgressPage = () => {
   const weeklyHours = data
     ? Math.round((data.weeklyStudyMinutes / MINUTES_PER_HOUR) * 10) / 10
     : 0;
+
+  const renderTrendContent = () => {
+    if (trendStatus === "loading" || trendStatus === "idle") {
+      return (
+        <Space align="center" style={{ width: "100%" }}>
+          <Spin size="small" />
+          <Typography.Text type="secondary">正在载入趋势数据…</Typography.Text>
+        </Space>
+      );
+    }
+
+    if (trendError) {
+      return <Alert message={trendError} showIcon type="error" />;
+    }
+
+    const trendPoints = trend?.dataPoints ?? [];
+
+    if (trendPoints.length === 0) {
+      return (
+        <Empty
+          description="暂无趋势数据"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      );
+    }
+
+    const displayedPoints = [...trendPoints]
+      .slice(-RECENT_TREND_WINDOW)
+      .reverse();
+    const totalMinutes = displayedPoints.reduce(
+      (sum, point) => sum + point.minutes,
+      0
+    );
+    const totalHours = Math.round((totalMinutes / MINUTES_PER_HOUR) * 10) / 10;
+    const maxMinutes = Math.max(
+      ...displayedPoints.map((point) => point.minutes),
+      0
+    );
+    const safeMaxMinutes = maxMinutes === 0 ? 1 : maxMinutes;
+
+    return (
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Typography.Text type="secondary">
+          最近{displayedPoints.length}天共学习 {totalHours} 小时
+        </Typography.Text>
+        <List
+          dataSource={displayedPoints}
+          locale={{ emptyText: "暂无趋势数据" }}
+          renderItem={(point) => {
+            const percentage = Math.round(
+              (point.minutes / safeMaxMinutes) * PERCENTAGE_BASE
+            );
+            const studyHours =
+              Math.round((point.minutes / MINUTES_PER_HOUR) * 10) / 10;
+            return (
+              <List.Item key={point.date}>
+                <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                  <div
+                    style={{
+                      alignItems: "baseline",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <Typography.Text strong>
+                      {new Date(point.date).toLocaleDateString()}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      完成任务 {point.completedTasks} 项
+                    </Typography.Text>
+                  </div>
+                  <Progress
+                    aria-label={`学习${studyHours}小时`}
+                    percent={percentage}
+                    showInfo={false}
+                    strokeLinecap="round"
+                  />
+                  <Space size={8} wrap>
+                    <Tag color="blue">学习 {studyHours} 小时</Tag>
+                    {point.completedTasks > 0 ? (
+                      <Tag color="success">
+                        完成任务 {point.completedTasks} 项
+                      </Tag>
+                    ) : (
+                      <Tag>暂无任务完成</Tag>
+                    )}
+                  </Space>
+                </Space>
+              </List.Item>
+            );
+          }}
+        />
+      </Space>
+    );
+  };
 
   return (
     <Space
@@ -171,6 +279,11 @@ const ProgressPage = () => {
           </Card>
         </Col>
         <Col lg={10} xs={24}>
+          <Card title="学习趋势">{renderTrendContent()}</Card>
+        </Col>
+      </Row>
+      <Row gutter={[24, 24]}>
+        <Col span={24}>
           <Card title="最近学习记录">
             <Table
               aria-label="学习会话记录表"
