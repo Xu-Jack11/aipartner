@@ -7,6 +7,7 @@ import type {
   AiCompletionResult,
 } from "./ai-provider.interface";
 import { AiProvider } from "./ai-provider.interface";
+import { prepareMessagesWithTooling } from "./tool-preparation";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
 const DEFAULT_TEMPERATURE = 0.7;
@@ -89,10 +90,15 @@ export class OpenAiProvider extends AiProvider {
     const temperature = options.temperature ?? DEFAULT_TEMPERATURE;
     const maxTokens = options.maxTokens ?? DEFAULT_MAX_TOKENS;
 
+    const augmentedMessages = await prepareMessagesWithTooling(
+      options,
+      this.logger
+    );
+
     const requestBody: OpenAiChatCompletionRequest = {
       // biome-ignore lint/style/useNamingConvention: OpenAI API requires snake_case
       max_tokens: maxTokens,
-      messages: options.messages.map((msg) => ({
+      messages: augmentedMessages.map((msg) => ({
         content: msg.content,
         role: msg.role,
       })),

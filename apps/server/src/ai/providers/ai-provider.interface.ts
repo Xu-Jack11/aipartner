@@ -8,6 +8,7 @@ export type AiCompletionOptions = {
   readonly model?: string;
   readonly temperature?: number;
   readonly maxTokens?: number;
+  readonly tools?: readonly string[];
 };
 
 export type AiCompletionResult = {
