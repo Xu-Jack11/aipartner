@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import "antd/dist/reset.css";
+import "highlight.js/styles/github-dark.css";
 import "./globals.css";
 import AppShell from "./components/app-shell";
 import { ThemeProvider } from "./providers";

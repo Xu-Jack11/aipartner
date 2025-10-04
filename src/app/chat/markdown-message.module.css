@@ -1,0 +1,133 @@
+.markdown {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.markdown h1 {
+  font-size: 28px;
+  border-bottom: 1px solid var(--markdown-heading-border-strong);
+  padding-bottom: 8px;
+}
+
+.markdown h2 {
+  font-size: 24px;
+  border-bottom: 1px solid var(--markdown-heading-border);
+  padding-bottom: 8px;
+}
+
+.markdown h3 {
+  font-size: 20px;
+}
+
+.markdown h4 {
+  font-size: 16px;
+}
+
+.markdown p {
+  margin-bottom: 16px;
+}
+
+.markdown ul,
+.markdown ol {
+  margin-bottom: 16px;
+  padding-left: 24px;
+}
+
+.markdown li {
+  margin-bottom: 4px;
+}
+
+.markdown blockquote {
+  margin: 16px 0;
+  padding: 8px 16px;
+  border-left: 4px solid #1890ff;
+  background-color: var(--markdown-blockquote-bg);
+  color: var(--markdown-blockquote-color);
+}
+
+.markdown pre {
+  margin: 16px 0;
+  padding: 16px;
+  background-color: #282c34;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.markdown code {
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 13px;
+}
+
+.markdown pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: #abb2bf;
+}
+
+.inlineCode {
+  padding: 2px 6px;
+  background-color: var(--markdown-inline-code-bg);
+  border-radius: 3px;
+  color: var(--markdown-inline-code-color);
+  font-size: 13px;
+}
+
+.markdown a {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.markdown a:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+.markdown table {
+  width: 100%;
+  margin: 16px 0;
+  border-collapse: collapse;
+}
+
+.markdown th,
+.markdown td {
+  padding: 8px 12px;
+  border: 1px solid var(--markdown-table-border);
+  text-align: left;
+}
+
+.markdown th {
+  background-color: var(--markdown-table-header-bg);
+  font-weight: 600;
+}
+
+.markdown hr {
+  margin: 24px 0;
+  border: none;
+  border-top: 1px solid var(--markdown-hr-border);
+}
+
+.markdown img {
+  max-width: 100%;
+  height: auto;
+  margin: 16px 0;
+  border-radius: 4px;
+}
+
+html[data-theme="dark"] .markdown {
+  color: rgba(255, 255, 255, 0.85);
+}

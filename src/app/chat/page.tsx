@@ -43,6 +43,7 @@ import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
 import { useModels } from "@/lib/hooks/use-models";
 import { useSessionMessages } from "@/lib/hooks/use-session-messages";
 import styles from "./chat.module.css";
+import { MarkdownMessage } from "./markdown-message";
 
 const PERCENTAGE_MULTIPLIER = 100;
 const TEMP_SESSION_PREFIX = "temp-";
@@ -300,15 +301,17 @@ const ChatTaskList = ({
 const MessageList = ({
   messages,
   isLoading,
+  isSending,
 }: {
   readonly messages: readonly MessageResponse[];
   readonly isLoading: boolean;
+  readonly isSending?: boolean;
 }) => {
   if (isLoading) {
     return (
       <Card>
         <div className={styles.messageContainer}>
-          <Spin size="large" />
+          <Spin size="large" tip="加载对话历史..." />
         </div>
       </Card>
     );
@@ -341,13 +344,27 @@ const MessageList = ({
                   {new Date(message.createdAt).toLocaleString()}
                 </Typography.Text>
               </Space>
-              <Typography.Paragraph style={{ marginBottom: 0 }}>
-                {message.content}
-              </Typography.Paragraph>
+              <div className={styles.messageContent}>
+                {message.role === "assistant" ? (
+                  <MarkdownMessage content={message.content} />
+                ) : (
+                  <Typography.Paragraph style={{ marginBottom: 0 }}>
+                    {message.content}
+                  </Typography.Paragraph>
+                )}
+              </div>
             </Space>
           </List.Item>
         )}
       />
+      {isSending && (
+        <div className={styles.loadingIndicator}>
+          <Space>
+            <Spin />
+            <Typography.Text type="secondary">AI 正在思考中...</Typography.Text>
+          </Space>
+        </div>
+      )}
     </Card>
   );
 };
@@ -736,6 +753,7 @@ const ChatContent = () => {
           ) : null}
           <MessageList
             isLoading={isLoadingMessages && !isTemp}
+            isSending={isSending}
             messages={messages}
           />
           <ChatComposer

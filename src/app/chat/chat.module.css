@@ -11,3 +11,12 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.messageContent {
+  width: 100%;
+}
+
+.loadingIndicator {
+  padding: 16px 0;
+  text-align: center;
+}

@@ -5,6 +5,15 @@
   --foreground: #101418;
   --surface: #f4f5f8;
   --border-subtle: rgba(15, 23, 42, 0.12);
+  --markdown-heading-border-strong: #d9d9d9;
+  --markdown-heading-border: #f0f0f0;
+  --markdown-blockquote-bg: #f0f5ff;
+  --markdown-blockquote-color: rgba(0, 0, 0, 0.65);
+  --markdown-inline-code-bg: rgba(150, 150, 150, 0.1);
+  --markdown-inline-code-color: #c7254e;
+  --markdown-table-border: #d9d9d9;
+  --markdown-table-header-bg: #fafafa;
+  --markdown-hr-border: #d9d9d9;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   color-scheme: light;
@@ -15,6 +24,15 @@ html[data-theme="dark"] {
   --foreground: #d9dbdf;
   --surface: #16181c;
   --border-subtle: rgba(132, 140, 153, 0.28);
+  --markdown-heading-border-strong: rgba(255, 255, 255, 0.12);
+  --markdown-heading-border: rgba(255, 255, 255, 0.12);
+  --markdown-blockquote-bg: rgba(24, 144, 255, 0.1);
+  --markdown-blockquote-color: rgba(255, 255, 255, 0.65);
+  --markdown-inline-code-bg: rgba(255, 255, 255, 0.1);
+  --markdown-inline-code-color: #ff7875;
+  --markdown-table-border: rgba(255, 255, 255, 0.12);
+  --markdown-table-header-bg: rgba(255, 255, 255, 0.04);
+  --markdown-hr-border: rgba(255, 255, 255, 0.12);
   color-scheme: dark;
 }
 
