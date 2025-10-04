@@ -86,7 +86,15 @@
 - 支持手动刷新 (refetch)
 - 错误处理和用户友好提示
 
-#### 3. UI组件 (`src/app/progress/page.tsx`)
+#### 3. React Hook (`src/lib/hooks/use-progress-trend.ts`)
+
+**useProgressTrend Hook:**
+- 按照指定天数加载学习趋势数据
+- 内置 loading/success/error 状态管理与错误提示
+- 提供 `refetch` 以便页面在交互后主动刷新
+- 仅在存在访问令牌时发起请求，避免未认证状态下重复调用
+
+#### 4. UI组件 (`src/app/progress/page.tsx`)
 
 **功能展示:**
 - ✅ 三大核心指标卡片:
@@ -98,6 +106,10 @@
   - 平均每日学习时长
   - 本月学习时长
   - 总学习时长
+- ✅ 学习趋势卡片:
+  - 最近7天学习时长相对占比
+  - 每日完成任务数量提示
+  - 针对无数据、加载、错误状态的友好反馈
 - ✅ 最近学习记录表格:
   - 日期
   - 学习主题
