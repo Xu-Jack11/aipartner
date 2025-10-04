@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type {
   AiCompletionOptions,
   AiCompletionResult,
+  AiModelInfo,
 } from "./ai-provider.interface";
 import { AiProvider } from "./ai-provider.interface";
 import { prepareMessagesWithTooling } from "./tool-preparation";
@@ -34,5 +35,23 @@ export class MockAiProvider extends AiProvider {
       content: responseContent,
       tokens: options.messages.length * MOCK_TOKENS_PER_MESSAGE,
     };
+  }
+
+  listModels(): Promise<readonly AiModelInfo[]> {
+    // 返回模拟的模型列表
+    return Promise.resolve([
+      {
+        created: Date.now(),
+        id: "mock-model-1",
+        object: "model",
+        ownedBy: "mock",
+      },
+      {
+        created: Date.now(),
+        id: "mock-model-2",
+        object: "model",
+        ownedBy: "mock",
+      },
+    ]);
   }
 }

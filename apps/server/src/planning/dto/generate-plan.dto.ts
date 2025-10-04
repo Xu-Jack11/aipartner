@@ -15,6 +15,10 @@ export class GeneratePlanDto {
   readonly sessionId!: string;
 
   @IsOptional()
+  @IsString()
+  readonly model?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => GenerateTaskDto)

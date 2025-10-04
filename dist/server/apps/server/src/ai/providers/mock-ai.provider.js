@@ -9,12 +9,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MockAiProvider = void 0;
 const common_1 = require("@nestjs/common");
 const ai_provider_interface_1 = require("./ai-provider.interface");
+const tool_preparation_1 = require("./tool-preparation");
 const MOCK_DELAY_MS = 1000;
 const MOCK_TOKENS_PER_MESSAGE = 50;
 let MockAiProvider = class MockAiProvider extends ai_provider_interface_1.AiProvider {
     async generateCompletion(options) {
         // Mock implementation for development
-        const userMessage = options.messages
+        const augmentedMessages = await (0, tool_preparation_1.prepareMessagesWithTooling)(options);
+        const userMessage = augmentedMessages
             .filter((msg) => msg.role === "user")
             .at(-1);
         const responseContent = userMessage
@@ -28,6 +30,23 @@ let MockAiProvider = class MockAiProvider extends ai_provider_interface_1.AiProv
             content: responseContent,
             tokens: options.messages.length * MOCK_TOKENS_PER_MESSAGE,
         };
+    }
+    listModels() {
+        // 返回模拟的模型列表
+        return Promise.resolve([
+            {
+                created: Date.now(),
+                id: "mock-model-1",
+                object: "model",
+                ownedBy: "mock",
+            },
+            {
+                created: Date.now(),
+                id: "mock-model-2",
+                object: "model",
+                ownedBy: "mock",
+            },
+        ]);
     }
 };
 exports.MockAiProvider = MockAiProvider;

@@ -15,6 +15,7 @@ const common_1 = require("@nestjs/common");
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires runtime metadata.
 const config_1 = require("@nestjs/config");
 const ai_provider_interface_1 = require("./ai-provider.interface");
+const tool_preparation_1 = require("./tool-preparation");
 const DEFAULT_MODEL = "gpt-4o-mini";
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 2000;
@@ -25,7 +26,7 @@ let OpenAiProvider = OpenAiProvider_1 = class OpenAiProvider extends ai_provider
         this.logger = new common_1.Logger(OpenAiProvider_1.name);
     }
     async generateCompletion(options) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         const apiKey = this.configService.get("openai.apiKey", {
             infer: true,
         });
@@ -33,13 +34,17 @@ let OpenAiProvider = OpenAiProvider_1 = class OpenAiProvider extends ai_provider
             this.logger.warn("OpenAI API key not configured, using mock response");
             return this.getMockResponse(options);
         }
-        const model = (_a = options.model) !== null && _a !== void 0 ? _a : DEFAULT_MODEL;
-        const temperature = (_b = options.temperature) !== null && _b !== void 0 ? _b : DEFAULT_TEMPERATURE;
-        const maxTokens = (_c = options.maxTokens) !== null && _c !== void 0 ? _c : DEFAULT_MAX_TOKENS;
+        const baseUrl = (_a = this.configService.get("openai.baseUrl", {
+            infer: true,
+        })) !== null && _a !== void 0 ? _a : "https://api.openai.com";
+        const model = (_b = options.model) !== null && _b !== void 0 ? _b : DEFAULT_MODEL;
+        const temperature = (_c = options.temperature) !== null && _c !== void 0 ? _c : DEFAULT_TEMPERATURE;
+        const maxTokens = (_d = options.maxTokens) !== null && _d !== void 0 ? _d : DEFAULT_MAX_TOKENS;
+        const augmentedMessages = await (0, tool_preparation_1.prepareMessagesWithTooling)(options, this.logger);
         const requestBody = {
             // biome-ignore lint/style/useNamingConvention: OpenAI API requires snake_case
             max_tokens: maxTokens,
-            messages: options.messages.map((msg) => ({
+            messages: augmentedMessages.map((msg) => ({
                 content: msg.content,
                 role: msg.role,
             })),
@@ -47,7 +52,7 @@ let OpenAiProvider = OpenAiProvider_1 = class OpenAiProvider extends ai_provider
             temperature,
         };
         try {
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            const response = await fetch(`${baseUrl}/v1/chat/completions`, {
                 body: JSON.stringify(requestBody),
                 headers: {
                     // biome-ignore lint/style/useNamingConvention: HTTP header requires this format
@@ -67,7 +72,7 @@ let OpenAiProvider = OpenAiProvider_1 = class OpenAiProvider extends ai_provider
                 throw new Error("No response from OpenAI");
             }
             return {
-                content: (_d = choice.message.content) !== null && _d !== void 0 ? _d : "",
+                content: (_e = choice.message.content) !== null && _e !== void 0 ? _e : "",
                 tokens: data.usage.total_tokens,
             };
         }
@@ -86,6 +91,43 @@ let OpenAiProvider = OpenAiProvider_1 = class OpenAiProvider extends ai_provider
                 : "您好！我是AI学习助手。请配置OpenAI API密钥以使用完整功能。",
             tokens: 100,
         };
+    }
+    async listModels() {
+        var _a;
+        const baseUrl = (_a = this.configService.get("openai.baseUrl", {
+            infer: true,
+        })) !== null && _a !== void 0 ? _a : "https://api.openai.com";
+        const apiKey = this.configService.get("openai.apiKey", {
+            infer: true,
+        });
+        if (!apiKey) {
+            this.logger.warn("OpenAI API key not configured");
+            return [];
+        }
+        try {
+            const response = await fetch(`${baseUrl}/v1/models`, {
+                headers: {
+                    // biome-ignore lint/style/useNamingConvention: HTTP header requires this format
+                    Authorization: `Bearer ${apiKey}`,
+                },
+                method: "GET",
+            });
+            if (!response.ok) {
+                this.logger.error(`Failed to fetch models: ${response.status}`);
+                return [];
+            }
+            const data = (await response.json());
+            return data.data.map((model) => ({
+                created: model.created,
+                id: model.id,
+                object: model.object,
+                ownedBy: model.owned_by,
+            }));
+        }
+        catch (error) {
+            this.logger.error("Failed to list models", error);
+            return [];
+        }
     }
 };
 exports.OpenAiProvider = OpenAiProvider;

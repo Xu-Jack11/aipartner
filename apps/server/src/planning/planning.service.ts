@@ -80,10 +80,8 @@ export class PlanningService {
       .map((msg) => `${msg.role}: ${msg.content}`)
       .join("\n");
 
-    const systemPrompt = `你是一个专业的学习规划助手。请根据以下对话内容，生成一个结构化的学习计划。
-
-对话内容：
-${conversationSummary}
+    const userPrompt = `你是一个专业的学习规划助手。请根据以下对话内容，生成一个结构化的学习计划。
+对话内容：${conversationSummary}
 
 请以JSON格式返回学习计划，包含以下字段：
 {
@@ -105,9 +103,10 @@ ${conversationSummary}
 5. 任务数量建议3-8个，确保可行性`;
 
     // 3. 调用AI生成计划
+    // 如果未显式传入模型, AI Provider 将使用默认配置。
     const aiResponse = await this.aiProvider.generateCompletion({
-      messages: [{ content: systemPrompt, role: "system" }],
-      model: "gpt-4o-mini",
+      messages: [{ content: userPrompt, role: "user" }],
+      model: dto.model,
     });
 
     // 4. 解析AI响应

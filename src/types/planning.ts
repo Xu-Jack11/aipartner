@@ -55,5 +55,6 @@ export type UpdateTaskDto = {
 
 export type GeneratePlanDto = {
   sessionId: string;
+  model?: string;
   taskSuggestions?: Array<{ summary: string; dueDate?: string }>;
 };

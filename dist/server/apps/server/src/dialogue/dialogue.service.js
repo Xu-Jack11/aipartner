@@ -125,6 +125,9 @@ let DialogueService = class DialogueService {
                     case "knowledge-base": {
                         return "You have access to a knowledge base with domain-specific information.";
                     }
+                    case "deep-analyze": {
+                        return "You should perform structured, multi-step reasoning before responding.";
+                    }
                     default: {
                         return "";
                     }
@@ -151,6 +154,7 @@ let DialogueService = class DialogueService {
                     role: msg.role,
                 })),
             model: dto.model,
+            tools: dto.tools,
         });
         // Save AI response
         const assistantMessage = await this.prisma.chatMessage.create({

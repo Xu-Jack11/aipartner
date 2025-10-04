@@ -7,6 +7,7 @@ import type { AppConfig } from "../../types";
 import type {
   AiCompletionOptions,
   AiCompletionResult,
+  AiModelInfo,
 } from "./ai-provider.interface";
 import { AiProvider } from "./ai-provider.interface";
 import { prepareMessagesWithTooling } from "./tool-preparation";
@@ -36,13 +37,33 @@ export class VercelAiProvider extends AiProvider {
       infer: true,
     });
 
+    const baseUrl = this.configService.get<string>("openai.baseUrl", {
+      infer: true,
+    });
+
     if (apiKey === undefined || apiKey.length === 0) {
       this.logger.warn("OpenAI API key not configured");
     }
 
-    this.openai = createOpenAI({
+    const openaiConfig: {
+      apiKey: string;
+      // biome-ignore lint/style/useNamingConvention: Vercel AI SDK requires baseURL
+      baseURL?: string;
+    } = {
       apiKey: apiKey ?? "",
-    });
+    };
+
+    if (baseUrl !== undefined && baseUrl.length > 0) {
+      // 对于 OpenAI 兼容的 API（如 DeepSeek），需要提供完整的 base URL 包括 /v1
+      // Vercel AI SDK 不会自动添加 /v1 路径
+      const fullBaseUrl = baseUrl.endsWith("/v1")
+        ? baseUrl
+        : `${baseUrl}/v1`;
+      openaiConfig.baseURL = fullBaseUrl;
+      this.logger.log(`Using custom OpenAI base URL: ${fullBaseUrl}`);
+    }
+
+    this.openai = createOpenAI(openaiConfig);
 
     this.logger.log("Vercel AI SDK provider initialized");
   }
@@ -57,7 +78,13 @@ export class VercelAiProvider extends AiProvider {
     const model = options.model ?? DEFAULT_MODEL;
     const temperature = options.temperature ?? DEFAULT_TEMPERATURE;
 
+    const baseUrl = this.configService.get<string>("openai.baseUrl", {
+      infer: true,
+    });
+
     this.logger.debug(`Generating completion with model: ${model}`);
+    this.logger.debug(`Using base URL: ${baseUrl ?? "default (OpenAI)"}`);
+    this.logger.debug(`Messages count: ${options.messages.length}`);
 
     try {
       const augmentedMessages = await prepareMessagesWithTooling(
@@ -92,6 +119,57 @@ export class VercelAiProvider extends AiProvider {
       throw new Error(
         `AI completion failed: ${error instanceof Error ? error.message : String(error)}`
       );
+    }
+  }
+
+  async listModels(): Promise<readonly AiModelInfo[]> {
+    const baseUrl =
+      this.configService.get<string>("openai.baseUrl", {
+        infer: true,
+      }) ?? "https://api.openai.com";
+
+    const apiKey = this.configService.get<string>("openai.apiKey", {
+      infer: true,
+    });
+
+    if (!apiKey) {
+      this.logger.warn("OpenAI API key not configured");
+      return [];
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}/v1/models`, {
+        headers: {
+          // biome-ignore lint/style/useNamingConvention: HTTP header requires this format
+          Authorization: `Bearer ${apiKey}`,
+        },
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        this.logger.error(`Failed to fetch models: ${response.status}`);
+        return [];
+      }
+
+      const data = (await response.json()) as {
+        data: Array<{
+          id: string;
+          object: string;
+          created?: number;
+          // biome-ignore lint/style/useNamingConvention: API response field
+          owned_by?: string;
+        }>;
+      };
+
+      return data.data.map((model) => ({
+        created: model.created,
+        id: model.id,
+        object: model.object,
+        ownedBy: model.owned_by,
+      }));
+    } catch (error) {
+      this.logger.error("Failed to list models", error);
+      return [];
     }
   }
 }

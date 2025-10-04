@@ -16,8 +16,17 @@ export type AiCompletionResult = {
   readonly tokens?: number;
 };
 
+export type AiModelInfo = {
+  readonly id: string;
+  readonly object: string;
+  readonly created?: number;
+  readonly ownedBy?: string;
+};
+
 export abstract class AiProvider {
   abstract generateCompletion(
     options: AiCompletionOptions
   ): Promise<AiCompletionResult>;
+
+  abstract listModels(): Promise<readonly AiModelInfo[]>;
 }

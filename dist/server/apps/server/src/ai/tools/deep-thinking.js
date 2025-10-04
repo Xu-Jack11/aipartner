@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.buildDeepThinkingInstruction = void 0;
+const buildDeepThinkingInstruction = () => [
+    "请以资深学习教练的身份给出回答，并遵循以下结构：",
+    "1. 在“分析步骤”部分逐条列出你的推理过程，包括问题拆解、关键要素评估与方案比较。",
+    "2. 如有需要，可在分析中引用知识库或联网搜索的要点，并标明出处。",
+    "3. 最后以“总结”小节收束，给出明确的结论或行动建议。",
+    "请保持语言简洁清晰，确保读者能够直接执行建议。",
+].join("\n");
+exports.buildDeepThinkingInstruction = buildDeepThinkingInstruction;

@@ -50,7 +50,7 @@ let PlanningService = class PlanningService {
         return this.toPlanResponse(plan);
     }
     async generatePlanFromSession(userId, dto) {
-        var _a;
+        var _a, _b;
         // 1. 获取会话信息和消息历史
         const session = await this.prisma.session.findUnique({
             include: {
@@ -70,7 +70,7 @@ let PlanningService = class PlanningService {
         const conversationSummary = session.messages
             .map((msg) => `${msg.role}: ${msg.content}`)
             .join("\n");
-        const systemPrompt = `你是一个专业的学习规划助手。请根据以下对话内容，生成一个结构化的学习计划。
+        const userPrompt = `你是一个专业的学习规划助手。请根据以下对话内容，生成一个结构化的学习计划。
 
 对话内容：
 ${conversationSummary}
@@ -93,12 +93,16 @@ ${conversationSummary}
 3. 任务列表应按学习顺序排列，每个任务应具体可执行
 4. 如果对话中提到时间要求，设置合理的截止日期
 5. 任务数量建议3-8个，确保可行性`;
-        // 3. 调用AI生成计划
+        // 3. 确定要使用的模型
+        // 优先级: DTO传入的模型 > 默认模型(deepseek-chat适用于DeepSeek API)
+        const modelToUse = (_a = dto.model) !== null && _a !== void 0 ? _a : "deepseek-chat";
+        // 4. 调用AI生成计划
+        // 注意: 使用 user 角色消息，因为某些 API 要求至少有一条 user 消息
         const aiResponse = await this.aiProvider.generateCompletion({
-            messages: [{ content: systemPrompt, role: "system" }],
-            model: "gpt-4o-mini",
+            messages: [{ content: userPrompt, role: "user" }],
+            model: modelToUse,
         });
-        // 4. 解析AI响应
+        // 5. 解析AI响应
         let planData;
         try {
             // 尝试从响应中提取JSON
@@ -108,11 +112,11 @@ ${conversationSummary}
             }
             planData = JSON.parse(jsonMatch[0]);
         }
-        catch (_b) {
+        catch (_c) {
             // 如果解析失败，使用默认计划
             planData = {
                 focus: session.focus,
-                tasks: (_a = dto.taskSuggestions) !== null && _a !== void 0 ? _a : [
+                tasks: (_b = dto.taskSuggestions) !== null && _b !== void 0 ? _b : [
                     {
                         summary: "回顾对话内容，整理学习要点",
                     },

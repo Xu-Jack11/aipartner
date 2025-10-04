@@ -5,6 +5,7 @@ import {
   BulbOutlined,
   DeleteOutlined,
   GlobalOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import {
   Alert,
@@ -37,6 +38,7 @@ import type {
 } from "@/lib/api/learning";
 import { generatePlanFromSession } from "@/lib/api/planning";
 import { useAuth } from "@/lib/auth-context";
+import { useAvailableModels } from "@/lib/hooks/use-available-models";
 import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
 import { useSessionMessages } from "@/lib/hooks/use-session-messages";
 import styles from "./chat.module.css";
@@ -218,10 +220,12 @@ const ChatSidebar = ({
 const ChatTaskList = ({
   plan,
   sessionId,
+  model,
   onPlanGenerated,
 }: {
   readonly plan?: LearningPlanResponse;
   readonly sessionId?: string;
+  readonly model?: string;
   readonly onPlanGenerated?: () => void;
 }) => {
   const { message } = App.useApp();
@@ -241,7 +245,10 @@ const ChatTaskList = ({
 
     try {
       setIsGenerating(true);
-      await generatePlanFromSession(accessToken, { sessionId });
+      await generatePlanFromSession(accessToken, {
+        sessionId,
+        model,
+      });
       message.success("学习计划生成成功");
       onPlanGenerated?.();
       router.push("/plan");
@@ -250,7 +257,7 @@ const ChatTaskList = ({
     } finally {
       setIsGenerating(false);
     }
-  }, [accessToken, message, onPlanGenerated, router, sessionId]);
+  }, [accessToken, message, model, onPlanGenerated, router, sessionId]);
 
   const completionPercent = calculateTaskCompletion(plan);
 
@@ -325,9 +332,11 @@ const ChatTaskList = ({
 const MessageList = ({
   messages,
   isLoading,
+  isSending,
 }: {
   readonly messages: readonly MessageResponse[];
   readonly isLoading: boolean;
+  readonly isSending?: boolean;
 }) => {
   if (isLoading) {
     return (
@@ -363,7 +372,7 @@ const MessageList = ({
                   {message.role === "user" ? "我" : "AI助手"}
                 </Tag>
                 <Typography.Text type="secondary">
-                  {new Date(message.createdAt).toLocaleString()}
+                  {new Date(message.createdAt).toLocaleString("zh-CN")}
                 </Typography.Text>
               </Space>
               <Typography.Paragraph style={{ marginBottom: 0 }}>
@@ -373,19 +382,41 @@ const MessageList = ({
           </List.Item>
         )}
       />
+      {isSending ? (
+        <List.Item>
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space align="center" size={8}>
+              <Tag color="green">AI助手</Tag>
+              <Typography.Text type="secondary">正在思考...</Typography.Text>
+            </Space>
+            <Space>
+              <Spin size="small" />
+              <Typography.Text type="secondary">
+                正在生成回复，请稍候...
+              </Typography.Text>
+            </Space>
+          </Space>
+        </List.Item>
+      ) : null}
     </Card>
   );
 };
 
 const ChatComposer = ({
   model,
+  models,
+  modelsLoading,
   onModelChange,
+  onRefreshModels,
   onSendMessage,
   isSending,
   disabled,
 }: {
   readonly model: string;
+  readonly models: readonly ModelOption[];
+  readonly modelsLoading?: boolean;
   readonly onModelChange: (value: string) => void;
+  readonly onRefreshModels?: () => void;
   readonly onSendMessage: (
     content: string,
     options?: { readonly model?: string; readonly tools?: readonly string[] }
@@ -396,9 +427,8 @@ const ChatComposer = ({
   const [inputValue, setInputValue] = useState("");
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const selectedModel = useMemo(
-    () =>
-      modelOptions.find((option) => option.value === model) ?? modelOptions[0],
-    [model]
+    () => models.find((option) => option.value === model) ?? models[0],
+    [model, models]
   );
 
   const handleSend = () => {
@@ -434,44 +464,63 @@ const ChatComposer = ({
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
         <Space align="center" size={12} wrap>
           <Space direction="vertical" size={4}>
-            <Select
-              aria-label="选择对话模型"
-              disabled={disabled}
-              dropdownMatchSelectWidth={360}
-              onChange={onModelChange}
-              optionLabelProp="label"
-              optionRender={(option) => {
-                const data = option.data as ModelOption;
-                return (
-                  <Space direction="vertical" size={4}>
-                    <Typography.Text strong>{data.label}</Typography.Text>
-                    <Typography.Text style={{ fontSize: 12 }} type="secondary">
-                      {data.description}
-                    </Typography.Text>
-                    <Space size={4} wrap>
-                      {data.capabilities.map((capability) => (
-                        <Tag bordered={false} key={capability}>
-                          {capability}
+            <Space size={8}>
+              <Select
+                aria-label="选择对话模型"
+                disabled={disabled}
+                dropdownMatchSelectWidth={360}
+                onChange={onModelChange}
+                optionLabelProp="label"
+                optionRender={(option) => {
+                  const data = option.data as ModelOption;
+                  return (
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text strong>{data.label}</Typography.Text>
+                      <Typography.Text
+                        style={{ fontSize: 12 }}
+                        type="secondary"
+                      >
+                        {data.description}
+                      </Typography.Text>
+                      <Space size={4} wrap>
+                        {data.capabilities.map((capability) => (
+                          <Tag bordered={false} key={capability}>
+                            {capability}
+                          </Tag>
+                        ))}
+                        <Tag bordered={false} key={`${data.value}-context`}>
+                          上下文 {data.contextWindow}
                         </Tag>
-                      ))}
-                      <Tag bordered={false} key={`${data.value}-context`}>
-                        上下文 {data.contextWindow}
-                      </Tag>
+                      </Space>
+                      <Typography.Text
+                        style={{ fontSize: 12 }}
+                        type="secondary"
+                      >
+                        适用:{data.useCases}
+                      </Typography.Text>
                     </Space>
-                    <Typography.Text style={{ fontSize: 12 }} type="secondary">
-                      适用：{data.useCases}
-                    </Typography.Text>
-                  </Space>
-                );
-              }}
-              options={modelOptions.map((option) => ({
-                ...option,
-                label: option.label,
-                value: option.value,
-              }))}
-              style={{ minWidth: 220 }}
-              value={model}
-            />
+                  );
+                }}
+                options={models.map((option) => ({
+                  ...option,
+                  label: option.label,
+                  value: option.value,
+                }))}
+                style={{ minWidth: 220 }}
+                value={model}
+              />
+              {onRefreshModels ? (
+                <Button
+                  aria-label="刷新模型列表"
+                  disabled={disabled}
+                  icon={<ReloadOutlined />}
+                  loading={modelsLoading}
+                  onClick={onRefreshModels}
+                  title="刷新模型列表"
+                  type="text"
+                />
+              ) : null}
+            </Space>
             <Space size={4} wrap>
               {selectedModel.capabilities.map((capability) => (
                 <Tag bordered={false} key={`active-${capability}`}>
@@ -541,6 +590,11 @@ const ChatComposer = ({
 const ChatContent = () => {
   const { status: authStatus, accessToken } = useAuth();
   const { data, status, error, refetch } = useLearningSummary();
+  const {
+    models: availableModels,
+    loading: modelsLoading,
+    refetch: refetchModels,
+  } = useAvailableModels(accessToken);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { message } = App.useApp();
@@ -549,6 +603,44 @@ const ChatContent = () => {
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   const sessions = data?.chatSessions ?? [];
+
+  // 组合动态模型列表和静态模型元数据
+  const combinedModels = useMemo(() => {
+    // 仅在初次加载时使用静态列表作为后备
+    if (modelsLoading) {
+      return modelOptions;
+    }
+
+    // 加载完成后,如果没有获取到模型,仍然使用静态列表
+    if (availableModels.length === 0) {
+      return modelOptions;
+    }
+
+    // 为每个动态模型创建选项,使用静态元数据或默认值
+    return availableModels.map((apiModel) => {
+      const staticInfo = modelOptions.find((opt) => opt.value === apiModel.id);
+      return {
+        capabilities: staticInfo?.capabilities ?? ["通用模型"],
+        contextWindow: staticInfo?.contextWindow ?? "未知",
+        description:
+          staticInfo?.description ??
+          `${apiModel.ownedBy ? `由 ${apiModel.ownedBy} 提供` : ""}`,
+        label: staticInfo?.label ?? apiModel.id,
+        useCases: staticInfo?.useCases ?? "通用对话、问答",
+        value: apiModel.id,
+      };
+    });
+  }, [availableModels, modelsLoading]);
+
+  // 确保当前选择的模型有效
+  useEffect(() => {
+    if (
+      combinedModels.length > 0 &&
+      !combinedModels.find((m) => m.value === model)
+    ) {
+      setModel(combinedModels[0].value);
+    }
+  }, [combinedModels, model]);
 
   // 创建临时会话
   const createTempSession = useCallback((): TempSession => {
@@ -786,18 +878,23 @@ const ChatContent = () => {
           ) : null}
           <MessageList
             isLoading={isLoadingMessages && !isTemp}
+            isSending={isSending || isCreatingSession}
             messages={messages}
           />
           <ChatComposer
             disabled={isCreatingSession}
             isSending={isSending || isCreatingSession}
             model={model}
+            models={combinedModels}
+            modelsLoading={modelsLoading}
             onModelChange={setModel}
+            onRefreshModels={refetchModels}
             onSendMessage={handleSendMessage}
           />
         </Space>
       </section>
       <ChatTaskList
+        model={model}
         onPlanGenerated={refetch}
         plan={activePlan}
         sessionId={isTemp ? undefined : activeSession?.id}

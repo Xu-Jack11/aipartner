@@ -45,6 +45,7 @@ const appPort = readNumber("PORT", exports.DEFAULT_APP_PORT);
 const jwtSecret = readRequired("JWT_SECRET", "local-development-secret");
 const jwtExpiresIn = readRequired("JWT_EXPIRES_IN", "1h");
 const openaiApiKey = (_a = process.env.OPENAI_API_KEY) !== null && _a !== void 0 ? _a : "";
+const openaiBaseUrl = process.env.OPENAI_BASE_URL;
 const databaseUrl = readRequired("DATABASE_URL", "");
 if (isProduction && missingRequired.length > 0) {
     throw new Error(`Missing required environment variables: ${missingRequired.join(", ")}`);
@@ -66,5 +67,6 @@ exports.env = Object.freeze({
     nodeEnv,
     openai: {
         apiKey: openaiApiKey,
+        baseUrl: openaiBaseUrl,
     },
 });

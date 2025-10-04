@@ -5,6 +5,7 @@ import type { AppConfig } from "../../types";
 import type {
   AiCompletionOptions,
   AiCompletionResult,
+  AiModelInfo,
 } from "./ai-provider.interface";
 import { AiProvider } from "./ai-provider.interface";
 import { prepareMessagesWithTooling } from "./tool-preparation";
@@ -86,6 +87,11 @@ export class OpenAiProvider extends AiProvider {
       return this.getMockResponse(options);
     }
 
+    const baseUrl =
+      this.configService.get<string>("openai.baseUrl", {
+        infer: true,
+      }) ?? "https://api.openai.com";
+
     const model = options.model ?? DEFAULT_MODEL;
     const temperature = options.temperature ?? DEFAULT_TEMPERATURE;
     const maxTokens = options.maxTokens ?? DEFAULT_MAX_TOKENS;
@@ -107,18 +113,15 @@ export class OpenAiProvider extends AiProvider {
     };
 
     try {
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          body: JSON.stringify(requestBody),
-          headers: {
-            // biome-ignore lint/style/useNamingConvention: HTTP header requires this format
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        }
-      );
+      const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+        body: JSON.stringify(requestBody),
+        headers: {
+          // biome-ignore lint/style/useNamingConvention: HTTP header requires this format
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -156,5 +159,56 @@ export class OpenAiProvider extends AiProvider {
         : "您好！我是AI学习助手。请配置OpenAI API密钥以使用完整功能。",
       tokens: 100,
     };
+  }
+
+  async listModels(): Promise<readonly AiModelInfo[]> {
+    const baseUrl =
+      this.configService.get<string>("openai.baseUrl", {
+        infer: true,
+      }) ?? "https://api.openai.com";
+
+    const apiKey = this.configService.get<string>("openai.apiKey", {
+      infer: true,
+    });
+
+    if (!apiKey) {
+      this.logger.warn("OpenAI API key not configured");
+      return [];
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}/v1/models`, {
+        headers: {
+          // biome-ignore lint/style/useNamingConvention: HTTP header requires this format
+          Authorization: `Bearer ${apiKey}`,
+        },
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        this.logger.error(`Failed to fetch models: ${response.status}`);
+        return [];
+      }
+
+      const data = (await response.json()) as {
+        data: Array<{
+          id: string;
+          object: string;
+          created?: number;
+          // biome-ignore lint/style/useNamingConvention: API response field
+          owned_by?: string;
+        }>;
+      };
+
+      return data.data.map((model) => ({
+        created: model.created,
+        id: model.id,
+        object: model.object,
+        ownedBy: model.owned_by,
+      }));
+    } catch (error) {
+      this.logger.error("Failed to list models", error);
+      return [];
+    }
   }
 }

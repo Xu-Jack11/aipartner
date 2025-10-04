@@ -1,11 +1,13 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import type { AppConfig } from "../types";
+import { AiController } from "./ai.controller";
 import { AiProvider } from "./providers/ai-provider.interface";
 import { MockAiProvider } from "./providers/mock-ai.provider";
 import { VercelAiProvider } from "./providers/vercel-ai.provider";
 
 @Module({
+  controllers: [AiController],
   exports: [AiProvider],
   imports: [ConfigModule],
   providers: [
