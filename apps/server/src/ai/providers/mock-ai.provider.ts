@@ -4,6 +4,7 @@ import type {
   AiCompletionResult,
 } from "./ai-provider.interface";
 import { AiProvider } from "./ai-provider.interface";
+import { prepareMessagesWithTooling } from "./tool-preparation";
 
 const MOCK_DELAY_MS = 1000;
 const MOCK_TOKENS_PER_MESSAGE = 50;
@@ -14,7 +15,9 @@ export class MockAiProvider extends AiProvider {
     options: AiCompletionOptions
   ): Promise<AiCompletionResult> {
     // Mock implementation for development
-    const userMessage = options.messages
+    const augmentedMessages = await prepareMessagesWithTooling(options);
+
+    const userMessage = augmentedMessages
       .filter((msg) => msg.role === "user")
       .at(-1);
 

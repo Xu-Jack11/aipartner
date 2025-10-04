@@ -80,14 +80,31 @@ const conversationActions = [
   },
 ];
 
-const modelOptions = [
+type ModelOption = {
+  readonly value: string;
+  readonly label: string;
+  readonly description: string;
+  readonly capabilities: readonly string[];
+  readonly contextWindow: string;
+  readonly useCases: string;
+};
+
+const modelOptions: readonly ModelOption[] = [
   {
-    label: "GPT-4o",
-    value: "gpt-4o",
+    capabilities: ["高性价比", "快速响应"],
+    contextWindow: "128K tokens",
+    description: "适合日常问答、课程总结与轻量推理任务，响应速度最快。",
+    label: "GPT-4o mini",
+    useCases: "即时解答、学习卡片、知识点梳理",
+    value: "gpt-4o-mini",
   },
   {
-    label: "Claude 3.5",
-    value: "claude-3.5",
+    capabilities: ["高精度", "长上下文推理"],
+    contextWindow: "128K tokens",
+    description: "旗舰通用模型，适合深入分析、方案规划与复杂问题求解。",
+    label: "GPT-4o",
+    useCases: "深度问答、学习计划设计、复杂任务拆解",
+    value: "gpt-4o",
   },
 ];
 
@@ -378,6 +395,11 @@ const ChatComposer = ({
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const selectedModel = useMemo(
+    () =>
+      modelOptions.find((option) => option.value === model) ?? modelOptions[0],
+    [model]
+  );
 
   const handleSend = () => {
     const trimmedValue = inputValue.trim();
@@ -411,14 +433,64 @@ const ChatComposer = ({
     <Card>
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
         <Space align="center" size={12} wrap>
-          <Select
-            aria-label="选择对话模型"
-            disabled={disabled}
-            onChange={onModelChange}
-            options={modelOptions}
-            style={{ minWidth: 180 }}
-            value={model}
-          />
+          <Space direction="vertical" size={4}>
+            <Select
+              aria-label="选择对话模型"
+              disabled={disabled}
+              dropdownMatchSelectWidth={360}
+              onChange={onModelChange}
+              optionLabelProp="label"
+              optionRender={(option) => {
+                const data = option.data as ModelOption;
+                return (
+                  <Space direction="vertical" size={4}>
+                    <Typography.Text strong>{data.label}</Typography.Text>
+                    <Typography.Text style={{ fontSize: 12 }} type="secondary">
+                      {data.description}
+                    </Typography.Text>
+                    <Space size={4} wrap>
+                      {data.capabilities.map((capability) => (
+                        <Tag bordered={false} key={capability}>
+                          {capability}
+                        </Tag>
+                      ))}
+                      <Tag bordered={false} key={`${data.value}-context`}>
+                        上下文 {data.contextWindow}
+                      </Tag>
+                    </Space>
+                    <Typography.Text style={{ fontSize: 12 }} type="secondary">
+                      适用：{data.useCases}
+                    </Typography.Text>
+                  </Space>
+                );
+              }}
+              options={modelOptions.map((option) => ({
+                ...option,
+                label: option.label,
+                value: option.value,
+              }))}
+              style={{ minWidth: 220 }}
+              value={model}
+            />
+            <Space size={4} wrap>
+              {selectedModel.capabilities.map((capability) => (
+                <Tag bordered={false} key={`active-${capability}`}>
+                  {capability}
+                </Tag>
+              ))}
+              <Tag bordered={false} key="active-context">
+                上下文 {selectedModel.contextWindow}
+              </Tag>
+            </Space>
+            <Typography.Text
+              aria-live="polite"
+              role="status"
+              style={{ fontSize: 12 }}
+              type="secondary"
+            >
+              适用场景：{selectedModel.useCases} · {selectedModel.description}
+            </Typography.Text>
+          </Space>
           {conversationActions.map((action) => (
             <Button
               aria-label={`${action.label}:${action.description}`}

@@ -9,6 +9,7 @@ import type {
   AiCompletionResult,
 } from "./ai-provider.interface";
 import { AiProvider } from "./ai-provider.interface";
+import { prepareMessagesWithTooling } from "./tool-preparation";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
 const DEFAULT_TEMPERATURE = 0.7;
@@ -59,8 +60,13 @@ export class VercelAiProvider extends AiProvider {
     this.logger.debug(`Generating completion with model: ${model}`);
 
     try {
+      const augmentedMessages = await prepareMessagesWithTooling(
+        options,
+        this.logger
+      );
+
       // 将消息格式转换为 Vercel AI SDK 格式
-      const messages = options.messages.map((msg) => ({
+      const messages = augmentedMessages.map((msg) => ({
         content: msg.content,
         role: msg.role as "system" | "user" | "assistant",
       }));

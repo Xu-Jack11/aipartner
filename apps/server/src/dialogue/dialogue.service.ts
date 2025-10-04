@@ -147,6 +147,9 @@ export class DialogueService {
             case "knowledge-base": {
               return "You have access to a knowledge base with domain-specific information.";
             }
+            case "deep-analyze": {
+              return "You should perform structured, multi-step reasoning before responding.";
+            }
             default: {
               return "";
             }
@@ -175,6 +178,7 @@ export class DialogueService {
             role: msg.role as "user" | "assistant",
           })),
       model: dto.model,
+      tools: dto.tools,
     });
 
     // Save AI response
