@@ -17,5 +17,6 @@ export type AppConfig = {
   nodeEnv: NodeEnv;
   openai: {
     apiKey: string;
+    baseUrl?: string;
   };
 };

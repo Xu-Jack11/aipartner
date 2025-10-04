@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { AiModule } from "./ai/ai.module";
 import { AuthModule } from "./auth/auth.module";
 import { env } from "./config/env";
 import { DialogueModule } from "./dialogue/dialogue.module";
@@ -19,6 +20,7 @@ import { UsersModule } from "./users/users.module";
     PrismaModule,
     UsersModule,
     AuthModule,
+    AiModule,
     LearningModule,
     DialogueModule,
     PlanningModule,

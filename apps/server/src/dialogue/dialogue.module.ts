@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
-import { AiProvider } from "../ai/providers/ai-provider.interface";
-import { OpenAiProvider } from "../ai/providers/openai.provider";
+import { AiModule } from "../ai/ai.module";
 import { PrismaModule } from "../prisma/prisma.module";
 import { DialogueController } from "./dialogue.controller";
 import { DialogueService } from "./dialogue.service";
@@ -8,13 +7,7 @@ import { DialogueService } from "./dialogue.service";
 @Module({
   controllers: [DialogueController],
   exports: [DialogueService],
-  imports: [PrismaModule],
-  providers: [
-    DialogueService,
-    {
-      provide: AiProvider,
-      useClass: OpenAiProvider,
-    },
-  ],
+  imports: [PrismaModule, AiModule],
+  providers: [DialogueService],
 })
 export class DialogueModule {}

@@ -5,6 +5,7 @@ import {
   BulbOutlined,
   DeleteOutlined,
   GlobalOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import {
   Alert,
@@ -18,6 +19,7 @@ import {
   Space,
   Spin,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import Link from "next/link";
@@ -38,6 +40,7 @@ import type {
 import { generatePlanFromSession } from "@/lib/api/planning";
 import { useAuth } from "@/lib/auth-context";
 import { useLearningSummary } from "@/lib/hooks/use-learning-summary";
+import { useModels } from "@/lib/hooks/use-models";
 import { useSessionMessages } from "@/lib/hooks/use-session-messages";
 import styles from "./chat.module.css";
 
@@ -77,17 +80,6 @@ const conversationActions = [
     icon: <BookOutlined />,
     key: "knowledge-base",
     label: "知识库",
-  },
-];
-
-const modelOptions = [
-  {
-    label: "GPT-4o",
-    value: "gpt-4o",
-  },
-  {
-    label: "Claude 3.5",
-    value: "claude-3.5",
   },
 ];
 
@@ -362,13 +354,22 @@ const MessageList = ({
 
 const ChatComposer = ({
   model,
+  modelOptions,
   onModelChange,
+  onRefreshModels,
+  isRefreshingModels,
   onSendMessage,
   isSending,
   disabled,
 }: {
   readonly model: string;
+  readonly modelOptions: readonly {
+    readonly label: string;
+    readonly value: string;
+  }[];
   readonly onModelChange: (value: string) => void;
+  readonly onRefreshModels: () => void;
+  readonly isRefreshingModels: boolean;
   readonly onSendMessage: (
     content: string,
     options?: { readonly model?: string; readonly tools?: readonly string[] }
@@ -415,10 +416,19 @@ const ChatComposer = ({
             aria-label="选择对话模型"
             disabled={disabled}
             onChange={onModelChange}
-            options={modelOptions}
+            options={[...modelOptions]}
             style={{ minWidth: 180 }}
             value={model}
           />
+          <Tooltip title="刷新模型列表">
+            <Button
+              disabled={disabled || isRefreshingModels}
+              htmlType="button"
+              icon={<ReloadOutlined spin={isRefreshingModels} />}
+              onClick={onRefreshModels}
+              type="default"
+            />
+          </Tooltip>
           {conversationActions.map((action) => (
             <Button
               aria-label={`${action.label}:${action.description}`}
@@ -469,14 +479,26 @@ const ChatComposer = ({
 const ChatContent = () => {
   const { status: authStatus, accessToken } = useAuth();
   const { data, status, error, refetch } = useLearningSummary();
+  const {
+    data: modelOptions,
+    status: modelsStatus,
+    refetch: refetchModels,
+  } = useModels();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { message } = App.useApp();
-  const [model, setModel] = useState(modelOptions[0].value);
+  const [model, setModel] = useState<string>("");
   const [tempSession, setTempSession] = useState<TempSession | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   const sessions = data?.chatSessions ?? [];
+
+  // 设置默认模型
+  useEffect(() => {
+    if (modelsStatus === "success" && modelOptions.length > 0 && !model) {
+      setModel(modelOptions[0].value);
+    }
+  }, [modelsStatus, modelOptions, model]);
 
   // 创建临时会话
   const createTempSession = useCallback((): TempSession => {
@@ -718,9 +740,12 @@ const ChatContent = () => {
           />
           <ChatComposer
             disabled={isCreatingSession}
+            isRefreshingModels={modelsStatus === "loading"}
             isSending={isSending || isCreatingSession}
             model={model}
+            modelOptions={modelOptions}
             onModelChange={setModel}
+            onRefreshModels={refetchModels}
             onSendMessage={handleSendMessage}
           />
         </Space>

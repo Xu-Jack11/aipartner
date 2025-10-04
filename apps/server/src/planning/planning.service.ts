@@ -105,9 +105,9 @@ ${conversationSummary}
 5. 任务数量建议3-8个，确保可行性`;
 
     // 3. 调用AI生成计划
+    // 不指定模型，让 AiProvider 根据配置的 baseURL 自动选择合适的模型
     const aiResponse = await this.aiProvider.generateCompletion({
       messages: [{ content: systemPrompt, role: "system" }],
-      model: "gpt-4o-mini",
     });
 
     // 4. 解析AI响应

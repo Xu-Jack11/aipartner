@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const ai_module_1 = require("./ai/ai.module");
 const auth_module_1 = require("./auth/auth.module");
 const env_1 = require("./config/env");
 const dialogue_module_1 = require("./dialogue/dialogue.module");
@@ -31,6 +32,7 @@ exports.AppModule = AppModule = __decorate([
             prisma_module_1.PrismaModule,
             users_module_1.UsersModule,
             auth_module_1.AuthModule,
+            ai_module_1.AiModule,
             learning_module_1.LearningModule,
             dialogue_module_1.DialogueModule,
             planning_module_1.PlanningModule,
