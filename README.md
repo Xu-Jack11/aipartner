@@ -47,4 +47,12 @@ docs/                  Architecture, requirements, and planning assets
 src/                   Next.js application
 ```
 
-The NestJS backend currently provides registration, login, and profile retrieval endpoints with JWT-based authentication. The in-memory `UsersService` is a placeholder until database layers are integrated.
+The NestJS backend currently provides:
+- **Authentication**: User registration, login, and profile management
+- **Dialogue**: AI-powered chat sessions with message history
+- **Planning**: Learning plan creation, generation, and task management
+- **Progress**: Study session tracking, statistics, and trend analysis
+- **Learning**: Comprehensive learning summary aggregation
+- **AI Models**: Dynamic model list retrieval from configured providers
+
+For complete API documentation including all endpoints, request/response formats, and examples, see [docs/api-reference.md](docs/api-reference.md).
