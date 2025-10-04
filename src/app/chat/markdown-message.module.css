@@ -1,0 +1,162 @@
+.markdown {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.markdown h1 {
+  font-size: 28px;
+  border-bottom: 1px solid #d9d9d9;
+  padding-bottom: 8px;
+}
+
+.markdown h2 {
+  font-size: 24px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.markdown h3 {
+  font-size: 20px;
+}
+
+.markdown h4 {
+  font-size: 16px;
+}
+
+.markdown p {
+  margin-bottom: 16px;
+}
+
+.markdown ul,
+.markdown ol {
+  margin-bottom: 16px;
+  padding-left: 24px;
+}
+
+.markdown li {
+  margin-bottom: 4px;
+}
+
+.markdown blockquote {
+  margin: 16px 0;
+  padding: 8px 16px;
+  border-left: 4px solid #1890ff;
+  background-color: #f0f5ff;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.markdown pre {
+  margin: 16px 0;
+  padding: 16px;
+  background-color: #282c34;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.markdown code {
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 13px;
+}
+
+.markdown pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: #abb2bf;
+}
+
+.inlineCode {
+  padding: 2px 6px;
+  background-color: rgba(150, 150, 150, 0.1);
+  border-radius: 3px;
+  color: #c7254e;
+  font-size: 13px;
+}
+
+.markdown a {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.markdown a:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+.markdown table {
+  width: 100%;
+  margin: 16px 0;
+  border-collapse: collapse;
+}
+
+.markdown th,
+.markdown td {
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  text-align: left;
+}
+
+.markdown th {
+  background-color: #fafafa;
+  font-weight: 600;
+}
+
+.markdown hr {
+  margin: 24px 0;
+  border: none;
+  border-top: 1px solid #d9d9d9;
+}
+
+.markdown img {
+  max-width: 100%;
+  height: auto;
+  margin: 16px 0;
+  border-radius: 4px;
+}
+
+:global(html[data-theme="dark"]) .markdown {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+:global(html[data-theme="dark"]) .markdown h1,
+:global(html[data-theme="dark"]) .markdown h2 {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+:global(html[data-theme="dark"]) .markdown blockquote {
+  background-color: rgba(24, 144, 255, 0.1);
+  border-left-color: #1890ff;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+:global(html[data-theme="dark"]) .inlineCode {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ff7875;
+}
+
+:global(html[data-theme="dark"]) .markdown th,
+:global(html[data-theme="dark"]) .markdown td {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+:global(html[data-theme="dark"]) .markdown th {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+:global(html[data-theme="dark"]) .markdown hr {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
