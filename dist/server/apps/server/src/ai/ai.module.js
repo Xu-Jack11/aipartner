@@ -11,7 +11,7 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const ai_provider_interface_1 = require("./providers/ai-provider.interface");
 const mock_ai_provider_1 = require("./providers/mock-ai.provider");
-const openai_provider_1 = require("./providers/openai.provider");
+const vercel_ai_provider_1 = require("./providers/vercel-ai.provider");
 let AiModule = class AiModule {
 };
 exports.AiModule = AiModule;
@@ -27,7 +27,7 @@ exports.AiModule = AiModule = __decorate([
                     var _a;
                     const apiKey = (_a = configService.get("openai", { infer: true })) === null || _a === void 0 ? void 0 : _a.apiKey;
                     if (apiKey !== undefined && apiKey.length > 0) {
-                        return new openai_provider_1.OpenAiProvider(configService);
+                        return new vercel_ai_provider_1.VercelAiProvider(configService);
                     }
                     return new mock_ai_provider_1.MockAiProvider();
                 },
