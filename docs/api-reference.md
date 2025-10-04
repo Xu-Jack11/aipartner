@@ -19,6 +19,32 @@
   }
   ```
 
+## Quick Reference - All Endpoints
+
+| Domain | Method | Path | Summary | Auth |
+|--------|--------|------|---------|------|
+| **Auth** | POST | `/v1/auth/register` | Create user account | No |
+| | POST | `/v1/auth/login` | User login | No |
+| | GET | `/v1/auth/profile` | Get user profile | Yes |
+| **AI** | GET | `/v1/ai/models` | List available models | Yes |
+| **Dialogue** | GET | `/v1/dialogue/sessions` | List chat sessions | Yes |
+| | POST | `/v1/dialogue/sessions` | Create chat session | Yes |
+| | GET | `/v1/dialogue/sessions/{id}` | Get session with messages | Yes |
+| | POST | `/v1/dialogue/sessions/{id}/messages` | Send message | Yes |
+| | DELETE | `/v1/dialogue/sessions/{id}` | Delete session | Yes |
+| **Planning** | GET | `/v1/plans` | List learning plans | Yes |
+| | POST | `/v1/plans` | Create plan | Yes |
+| | POST | `/v1/plans/generate` | Generate plan from session | Yes |
+| | PATCH | `/v1/plans/{id}` | Update plan | Yes |
+| | DELETE | `/v1/plans/{id}` | Delete plan | Yes |
+| | POST | `/v1/plans/{id}/tasks` | Add task to plan | Yes |
+| | PATCH | `/v1/plans/{id}/tasks/{taskId}` | Update task | Yes |
+| **Progress** | POST | `/v1/progress/sessions` | Create study session | Yes |
+| | GET | `/v1/progress/sessions` | List study sessions | Yes |
+| | GET | `/v1/progress/stats` | Get progress statistics | Yes |
+| | GET | `/v1/progress/trend` | Get learning trends | Yes |
+| **Learning** | GET | `/v1/learning/summary` | Get comprehensive summary | Yes |
+
 ## Shared Conventions
 - Pagination: `limit`, `cursor`, and `nextCursor` params for list endpoints.
 - Idempotency: create/update endpoints accept optional `Idempotency-Key` header.
