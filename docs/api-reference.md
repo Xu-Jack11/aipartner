@@ -3,7 +3,7 @@
 ## Overview
 - Base URL: 
   - Production: `https://api.aipartner.example.com`
-  - Development: `http://localhost:3000/api`
+  - Development: `http://localhost:3001/api`
 - Version: `v1` prefix on every path (example: `/v1/dialogue/sessions`).
 - Authentication: Bearer token (JWT) in the `Authorization` header: `Authorization: Bearer <token>`
 - Formats: JSON bodies encoded in UTF-8; timestamps in ISO 8601 with timezone.
