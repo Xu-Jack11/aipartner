@@ -1,11 +1,21 @@
 "use client";
 
+import { MenuOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Button, Layout, Menu, Space, Typography } from "antd";
+import {
+  Button,
+  Divider,
+  Drawer,
+  Grid,
+  Layout,
+  Menu,
+  Space,
+  Typography,
+} from "antd";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties } from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import ThemeSwitcher from "./theme-switcher";
 
@@ -27,6 +37,16 @@ const menuStyle: CSSProperties = {
   display: "flex",
   justifyContent: "center",
 };
+
+const drawerBodyStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+  paddingBlock: 24,
+};
+
+const MOBILE_HEADER_GAP = 12;
+const MOBILE_HEADER_PADDING_INLINE = 16;
 
 const navigationItems: MenuProps["items"] = [
   {
@@ -77,46 +97,114 @@ const navigationMatchers = [
 const AppHeader = () => {
   const pathname = usePathname();
   const { user, status, logout } = useAuth();
+  const screens = Grid.useBreakpoint();
+  const [isNavOpen, setIsNavOpen] = useState(false);
   const activeKey = useMemo(() => {
     const matched = navigationMatchers.find((item) => item.match(pathname));
     return matched?.key ?? "home";
   }, [pathname]);
 
+  const isMobile = !screens.md;
+
+  const computedHeaderStyle = useMemo(
+    () => ({
+      ...headerStyle,
+      gap: isMobile ? MOBILE_HEADER_GAP : headerStyle.gap,
+      paddingInline: isMobile
+        ? MOBILE_HEADER_PADDING_INLINE
+        : headerStyle.paddingInline,
+    }),
+    [isMobile]
+  );
+
+  const closeDrawer = () => {
+    setIsNavOpen(false);
+  };
+
+  const handleMenuClick: MenuProps["onClick"] = () => {
+    if (isMobile) {
+      closeDrawer();
+    }
+  };
+
+  const userSection = (
+    <Space align="center" size={12} wrap>
+      {status === "authenticated" && user ? (
+        <Typography.Text aria-live="polite">
+          欢迎，{user.displayName}
+        </Typography.Text>
+      ) : (
+        <Link href="/login">登录</Link>
+      )}
+      {status === "authenticated" ? (
+        <Button htmlType="button" onClick={logout} size="small" type="default">
+          退出
+        </Button>
+      ) : null}
+    </Space>
+  );
+
   return (
-    <Layout.Header role="banner" style={headerStyle}>
+    <Layout.Header role="banner" style={computedHeaderStyle}>
       <Space align="center" size={16}>
         <Typography.Title level={4} style={brandStyle}>
           AI 学习搭子
         </Typography.Title>
       </Space>
-      <nav aria-label="主导航" style={{ flex: 1 }}>
-        <Menu
-          items={navigationItems}
-          mode="horizontal"
-          selectedKeys={[activeKey]}
-          style={menuStyle}
-        />
-      </nav>
-      <Space align="center" size={12}>
-        {status === "authenticated" && user ? (
-          <Typography.Text aria-live="polite">
-            欢迎，{user.displayName}
-          </Typography.Text>
-        ) : (
-          <Link href="/login">登录</Link>
-        )}
-        {status === "authenticated" ? (
+      {isMobile ? (
+        <Space align="center" size={12}>
+          <ThemeSwitcher />
           <Button
-            htmlType="button"
-            onClick={logout}
-            size="small"
-            type="default"
+            aria-controls="main-navigation"
+            aria-expanded={isNavOpen}
+            aria-label="打开导航菜单"
+            icon={<MenuOutlined />}
+            onClick={() => {
+              setIsNavOpen(true);
+            }}
+            type="text"
+          />
+          <Drawer
+            afterOpenChange={(open) => {
+              if (!open) {
+                closeDrawer();
+              }
+            }}
+            bodyStyle={drawerBodyStyle}
+            onClose={closeDrawer}
+            open={isNavOpen}
+            placement="right"
+            title="导航菜单"
           >
-            退出
-          </Button>
-        ) : null}
-        <ThemeSwitcher />
-      </Space>
+            <nav aria-label="主导航" id="main-navigation">
+              <Menu
+                items={navigationItems}
+                mode="inline"
+                onClick={handleMenuClick}
+                selectedKeys={[activeKey]}
+              />
+            </nav>
+            <Divider style={{ marginBlock: 0 }} />
+            {userSection}
+          </Drawer>
+        </Space>
+      ) : (
+        <>
+          <nav aria-label="主导航" style={{ flex: 1 }}>
+            <Menu
+              items={navigationItems}
+              mode="horizontal"
+              onClick={handleMenuClick}
+              selectedKeys={[activeKey]}
+              style={menuStyle}
+            />
+          </nav>
+          <Space align="center" size={12}>
+            {userSection}
+            <ThemeSwitcher />
+          </Space>
+        </>
+      )}
     </Layout.Header>
   );
 };

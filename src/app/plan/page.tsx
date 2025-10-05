@@ -110,7 +110,7 @@ const PlanCard = ({
   return (
     <Card
       extra={
-        <Space>
+        <Space wrap>
           <Button onClick={() => onEdit(plan)} size="small">
             编辑
           </Button>
