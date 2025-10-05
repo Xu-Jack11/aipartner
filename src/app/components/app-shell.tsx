@@ -29,21 +29,18 @@ const AppShell = ({ children }: { children: ReactNode }) => {
   const screens = Grid.useBreakpoint();
   const isChatRoute = useMemo(() => pathname.startsWith("/chat"), [pathname]);
   const isMobile = !screens.md;
-  const contentStyle = useMemo(
-    () => {
-      if (isChatRoute) {
-        return {
-          ...chatContentStyle,
-          padding: isMobile ? "16px 0 32px" : chatContentStyle.padding,
-        } satisfies CSSProperties;
-      }
+  const contentStyle = useMemo(() => {
+    if (isChatRoute) {
       return {
-        ...baseContentStyle,
-        padding: isMobile ? "24px 16px 36px" : baseContentStyle.padding,
+        ...chatContentStyle,
+        padding: isMobile ? "16px 0 32px" : chatContentStyle.padding,
       } satisfies CSSProperties;
-    },
-    [isChatRoute, isMobile]
-  );
+    }
+    return {
+      ...baseContentStyle,
+      padding: isMobile ? "24px 16px 36px" : baseContentStyle.padding,
+    } satisfies CSSProperties;
+  }, [isChatRoute, isMobile]);
 
   return (
     <Layout style={layoutStyle}>

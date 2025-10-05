@@ -181,7 +181,8 @@ const ChatSidebar = ({
                   />
                 </Space>
                 <Typography.Text type="secondary">
-                  {new Date(session.updatedAt).toLocaleString()} · {session.focus}
+                  {new Date(session.updatedAt).toLocaleString()} ·{" "}
+                  {session.focus}
                 </Typography.Text>
               </Space>
             </List.Item>
@@ -787,7 +788,6 @@ const ChatContent = () => {
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
         {conversationSection}
         <Collapse
-          style={{ width: "100%" }}
           defaultActiveKey={["history"]}
           items={[
             {
@@ -816,6 +816,7 @@ const ChatContent = () => {
               label: "学习计划待办",
             },
           ]}
+          style={{ width: "100%" }}
         />
       </Space>
     );

@@ -45,6 +45,9 @@ const drawerBodyStyle: CSSProperties = {
   paddingBlock: 24,
 };
 
+const MOBILE_HEADER_GAP = 12;
+const MOBILE_HEADER_PADDING_INLINE = 16;
+
 const navigationItems: MenuProps["items"] = [
   {
     key: "home",
@@ -106,8 +109,10 @@ const AppHeader = () => {
   const computedHeaderStyle = useMemo(
     () => ({
       ...headerStyle,
-      gap: isMobile ? 12 : headerStyle.gap,
-      paddingInline: isMobile ? 16 : headerStyle.paddingInline,
+      gap: isMobile ? MOBILE_HEADER_GAP : headerStyle.gap,
+      paddingInline: isMobile
+        ? MOBILE_HEADER_PADDING_INLINE
+        : headerStyle.paddingInline,
     }),
     [isMobile]
   );
@@ -132,12 +137,7 @@ const AppHeader = () => {
         <Link href="/login">登录</Link>
       )}
       {status === "authenticated" ? (
-        <Button
-          htmlType="button"
-          onClick={logout}
-          size="small"
-          type="default"
-        >
+        <Button htmlType="button" onClick={logout} size="small" type="default">
           退出
         </Button>
       ) : null}
