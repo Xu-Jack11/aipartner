@@ -12,6 +12,8 @@ import {
   App,
   Button,
   Card,
+  Collapse,
+  Grid,
   Input,
   List,
   Progress,
@@ -100,11 +102,13 @@ const ChatSidebar = ({
   activeSessionId,
   onNewChat,
   onDeleteSession,
+  variant = "desktop",
 }: {
   readonly sessions: readonly ChatSessionResponse[];
   readonly activeSessionId: string;
   readonly onNewChat: () => void;
   readonly onDeleteSession: (sessionId: string) => void;
+  readonly variant?: "desktop" | "mobile";
 }) => {
   const { modal } = App.useApp();
 
@@ -124,69 +128,76 @@ const ChatSidebar = ({
     [modal, onDeleteSession]
   );
 
+  const content = (
+    <Card
+      extra={
+        <Button onClick={onNewChat} size="small" type="primary">
+          新建对话
+        </Button>
+      }
+      title="历史对话"
+      variant="borderless"
+    >
+      <List
+        dataSource={[...sessions]}
+        locale={{ emptyText: "暂无对话" }}
+        renderItem={(session) => {
+          const isActive = session.id === activeSessionId;
+          return (
+            <List.Item
+              key={session.id}
+              style={{
+                background: isActive
+                  ? "rgba(22, 119, 255, 0.16)"
+                  : "transparent",
+                borderRadius: 8,
+                transition: "background-color 0.2s ease",
+              }}
+            >
+              <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                <Space
+                  align="center"
+                  size={8}
+                  style={{ justifyContent: "space-between", width: "100%" }}
+                >
+                  <Link
+                    aria-current={isActive ? "page" : undefined}
+                    href={{
+                      pathname: "/chat",
+                      query: { session: session.id },
+                    }}
+                  >
+                    <Typography.Text strong>{session.title}</Typography.Text>
+                  </Link>
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDelete(session.id, session.title);
+                    }}
+                    size="small"
+                    type="text"
+                  />
+                </Space>
+                <Typography.Text type="secondary">
+                  {new Date(session.updatedAt).toLocaleString()} · {session.focus}
+                </Typography.Text>
+              </Space>
+            </List.Item>
+          );
+        }}
+      />
+    </Card>
+  );
+
+  if (variant === "mobile") {
+    return content;
+  }
+
   return (
     <section aria-label="历史对话" className="chat-section chat-section--left">
-      <Card
-        extra={
-          <Button onClick={onNewChat} size="small" type="primary">
-            新建对话
-          </Button>
-        }
-        title="历史对话"
-        variant="borderless"
-      >
-        <List
-          dataSource={[...sessions]}
-          locale={{ emptyText: "暂无对话" }}
-          renderItem={(session) => {
-            const isActive = session.id === activeSessionId;
-            return (
-              <List.Item
-                key={session.id}
-                style={{
-                  background: isActive
-                    ? "rgba(22, 119, 255, 0.16)"
-                    : "transparent",
-                  borderRadius: 8,
-                  transition: "background-color 0.2s ease",
-                }}
-              >
-                <Space direction="vertical" size={4} style={{ width: "100%" }}>
-                  <Space
-                    align="center"
-                    size={8}
-                    style={{ justifyContent: "space-between", width: "100%" }}
-                  >
-                    <Link
-                      aria-current={isActive ? "page" : undefined}
-                      href={{
-                        pathname: "/chat",
-                        query: { session: session.id },
-                      }}
-                    >
-                      <Typography.Text strong>{session.title}</Typography.Text>
-                    </Link>
-                    <Button
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleDelete(session.id, session.title);
-                      }}
-                      size="small"
-                      type="text"
-                    />
-                  </Space>
-                  <Typography.Text type="secondary">
-                    {new Date(session.updatedAt).toLocaleString()} ·{" "}
-                    {session.focus}
-                  </Typography.Text>
-                </Space>
-              </List.Item>
-            );
-          }}
-        />
-      </Card>
+      {content}
     </section>
   );
 };
@@ -195,10 +206,12 @@ const ChatTaskList = ({
   plan,
   sessionId,
   onPlanGenerated,
+  variant = "desktop",
 }: {
   readonly plan?: LearningPlanResponse;
   readonly sessionId?: string;
   readonly onPlanGenerated?: () => void;
+  readonly variant?: "desktop" | "mobile";
 }) => {
   const { message } = App.useApp();
   const { accessToken } = useAuth();
@@ -230,70 +243,74 @@ const ChatTaskList = ({
 
   const completionPercent = calculateTaskCompletion(plan);
 
+  const content = (
+    <Card
+      extra={
+        <Button
+          disabled={sessionId === undefined || isGenerating}
+          loading={isGenerating}
+          onClick={handleGeneratePlan}
+          size="small"
+          type="primary"
+        >
+          生成计划
+        </Button>
+      }
+      title="学习计划待办"
+      variant="borderless"
+    >
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Progress
+          aria-label={`当前学习计划完成率${completionPercent}%`}
+          percent={completionPercent}
+          showInfo
+        />
+        <List
+          dataSource={
+            plan?.tasks ? ([...plan.tasks] as LearningTaskResponse[]) : []
+          }
+          locale={{ emptyText: "暂无任务" }}
+          renderItem={(task) => {
+            let statusText = "待开始";
+            let color: "default" | "processing" | "success" = "default";
+            if (task.status === "done") {
+              statusText = "已完成";
+              color = "success";
+            } else if (task.status === "in_progress") {
+              statusText = "进行中";
+              color = "processing";
+            }
+            return (
+              <List.Item key={task.id}>
+                <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                  <Typography.Text>{task.summary}</Typography.Text>
+                  <Space size={8} wrap>
+                    <Tag color={color}>状态：{statusText}</Tag>
+                    {task.dueDate ? (
+                      <Tag bordered={false}>
+                        截止：{new Date(task.dueDate).toLocaleDateString()}
+                      </Tag>
+                    ) : null}
+                  </Space>
+                </Space>
+              </List.Item>
+            );
+          }}
+        />
+      </Space>
+    </Card>
+  );
+
+  if (variant === "mobile") {
+    return content;
+  }
+
   return (
     <section
       aria-label="学习计划待办"
       className="chat-section chat-section--right"
     >
-      <Card
-        extra={
-          <Button
-            disabled={sessionId === undefined || isGenerating}
-            loading={isGenerating}
-            onClick={handleGeneratePlan}
-            size="small"
-            type="primary"
-          >
-            生成计划
-          </Button>
-        }
-        title="学习计划待办"
-        variant="borderless"
-      >
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
-          <Progress
-            aria-label={`当前学习计划完成率${completionPercent}%`}
-            percent={completionPercent}
-            showInfo
-          />
-          <List
-            dataSource={
-              plan?.tasks ? ([...plan.tasks] as LearningTaskResponse[]) : []
-            }
-            locale={{ emptyText: "暂无任务" }}
-            renderItem={(task) => {
-              let statusText = "待开始";
-              let color: "default" | "processing" | "success" = "default";
-              if (task.status === "done") {
-                statusText = "已完成";
-                color = "success";
-              } else if (task.status === "in_progress") {
-                statusText = "进行中";
-                color = "processing";
-              }
-              return (
-                <List.Item key={task.id}>
-                  <Space
-                    direction="vertical"
-                    size={4}
-                    style={{ width: "100%" }}
-                  >
-                    <Typography.Text>{task.summary}</Typography.Text>
-                    <Space size={8} wrap>
-                      <Tag color={color}>状态：{statusText}</Tag>
-                      {task.dueDate ? (
-                        <Tag bordered={false}>
-                          截止：{new Date(task.dueDate).toLocaleDateString()}
-                        </Tag>
-                      ) : null}
-                    </Space>
-                  </Space>
-                </List.Item>
-              );
-            }}
-          />
-        </Space>
-      </Card>
+      {content}
     </section>
   );
 };
@@ -504,6 +521,7 @@ const ChatContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { message } = App.useApp();
+  const screens = Grid.useBreakpoint();
   const [model, setModel] = useState<string>("");
   const [tempSession, setTempSession] = useState<TempSession | null>(null);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
@@ -588,6 +606,8 @@ const ChatContent = () => {
 
   // 临时会话的消息
   const messages = isTemp && tempSession ? tempSession.messages : realMessages;
+
+  const isDesktop = screens.lg ?? false;
 
   // 处理临时会话的消息发送
   const handleTempSessionMessage = useCallback(
@@ -724,7 +744,83 @@ const ChatContent = () => {
     );
   }
 
-  // 显示完整的对话界面
+  const conversationSection = (
+    <section
+      aria-label="对话内容"
+      className="chat-section chat-section--center"
+    >
+      <Space direction="vertical" size={24} style={{ width: "100%" }}>
+        <Typography.Title level={3}>
+          {activeSession?.title ?? "AI学习助手"}
+        </Typography.Title>
+        {isTemp ? (
+          <Alert
+            message="这是一个新对话,发送第一条消息后将自动保存"
+            showIcon
+            type="info"
+          />
+        ) : null}
+        {messagesError ? (
+          <Alert message={messagesError} showIcon type="error" />
+        ) : null}
+        <MessageList
+          isLoading={isLoadingMessages && !isTemp}
+          isSending={isSending}
+          messages={messages}
+        />
+        <ChatComposer
+          disabled={isCreatingSession}
+          isRefreshingModels={modelsStatus === "loading"}
+          isSending={isSending || isCreatingSession}
+          model={model}
+          modelOptions={modelOptions}
+          onModelChange={setModel}
+          onRefreshModels={refetchModels}
+          onSendMessage={handleSendMessage}
+        />
+      </Space>
+    </section>
+  );
+
+  if (!isDesktop) {
+    return (
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        {conversationSection}
+        <Collapse
+          style={{ width: "100%" }}
+          defaultActiveKey={["history"]}
+          items={[
+            {
+              children: (
+                <ChatSidebar
+                  activeSessionId={activeSession?.id ?? ""}
+                  onDeleteSession={handleDeleteSession}
+                  onNewChat={handleNewChat}
+                  sessions={sessions}
+                  variant="mobile"
+                />
+              ),
+              key: "history",
+              label: "历史对话",
+            },
+            {
+              children: (
+                <ChatTaskList
+                  onPlanGenerated={refetch}
+                  plan={activePlan}
+                  sessionId={isTemp ? undefined : activeSession?.id}
+                  variant="mobile"
+                />
+              ),
+              key: "plan",
+              label: "学习计划待办",
+            },
+          ]}
+        />
+      </Space>
+    );
+  }
+
   return (
     <div className="chat-layout">
       <ChatSidebar
@@ -733,41 +829,7 @@ const ChatContent = () => {
         onNewChat={handleNewChat}
         sessions={sessions}
       />
-      <section
-        aria-label="对话内容"
-        className="chat-section chat-section--center"
-      >
-        <Space direction="vertical" size={24} style={{ width: "100%" }}>
-          <Typography.Title level={3}>
-            {activeSession?.title ?? "AI学习助手"}
-          </Typography.Title>
-          {isTemp ? (
-            <Alert
-              message="这是一个新对话,发送第一条消息后将自动保存"
-              showIcon
-              type="info"
-            />
-          ) : null}
-          {messagesError ? (
-            <Alert message={messagesError} showIcon type="error" />
-          ) : null}
-          <MessageList
-            isLoading={isLoadingMessages && !isTemp}
-            isSending={isSending}
-            messages={messages}
-          />
-          <ChatComposer
-            disabled={isCreatingSession}
-            isRefreshingModels={modelsStatus === "loading"}
-            isSending={isSending || isCreatingSession}
-            model={model}
-            modelOptions={modelOptions}
-            onModelChange={setModel}
-            onRefreshModels={refetchModels}
-            onSendMessage={handleSendMessage}
-          />
-        </Space>
-      </section>
+      {conversationSection}
       <ChatTaskList
         onPlanGenerated={refetch}
         plan={activePlan}

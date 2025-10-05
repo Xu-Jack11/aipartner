@@ -1,7 +1,8 @@
 .planContainer {
-  max-width: 800px;
   margin: 0 auto;
-  padding: 24px;
+  max-width: 800px;
+  padding: clamp(16px, 4vw, 24px);
+  width: 100%;
 }
 
 .planHeader {

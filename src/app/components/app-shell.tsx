@@ -1,6 +1,6 @@
 "use client";
 
-import { Layout } from "antd";
+import { Grid, Layout } from "antd";
 import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { useMemo } from "react";
@@ -26,10 +26,23 @@ const layoutStyle: CSSProperties = {
 
 const AppShell = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
+  const screens = Grid.useBreakpoint();
   const isChatRoute = useMemo(() => pathname.startsWith("/chat"), [pathname]);
+  const isMobile = !screens.md;
   const contentStyle = useMemo(
-    () => (isChatRoute ? chatContentStyle : baseContentStyle),
-    [isChatRoute]
+    () => {
+      if (isChatRoute) {
+        return {
+          ...chatContentStyle,
+          padding: isMobile ? "16px 0 32px" : chatContentStyle.padding,
+        } satisfies CSSProperties;
+      }
+      return {
+        ...baseContentStyle,
+        padding: isMobile ? "24px 16px 36px" : baseContentStyle.padding,
+      } satisfies CSSProperties;
+    },
+    [isChatRoute, isMobile]
   );
 
   return (
