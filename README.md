@@ -16,7 +16,7 @@ pnpm server:build
 pnpm server:start
 ```
 
-The frontend is available at [http://localhost:3000](http://localhost:3000). By default the backend listens on [http://localhost:4000](http://localhost:4000) and exposes its REST API under `/api`.
+The frontend is available at [http://localhost:3000](http://localhost:3000). By default the backend listens on [http://localhost:3001](http://localhost:4000) and exposes its REST API under `/api`.
 
 ## Environment Configuration
 
