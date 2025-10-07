@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prestart": "pnpm run build",
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
     "server:dev": "ts-node --project tsconfig.server.json apps/server/src/main.ts",
     "server:build": "tsc -p tsconfig.server.json",
-    "server:start": "node dist/server/main.js",
+    "preserver:start": "pnpm run server:build",
+    "server:start": "node dist/server/apps/server/src/main.js",
     "prisma:generate": "prisma generate",
     "prisma:seed": "prisma db seed"
   },
