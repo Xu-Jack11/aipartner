@@ -16,7 +16,9 @@ pnpm server:build
 pnpm server:start
 ```
 
-The frontend is available at [http://localhost:3000](http://localhost:3000). By default the backend listens on [http://localhost:3001](http://localhost:4000) and exposes its REST API under `/api`.
+The frontend is available at [http://localhost:3000](http://localhost:3000). By default the backend listens on [http://localhost:3001](http://localhost:3001) and exposes its REST API under `/api`.
+
+For detailed setup and deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Environment Configuration
 
@@ -24,7 +26,7 @@ The backend reads configuration exclusively from environment variables. Set thes
 
 | Variable | Default (non-production) | Description |
 | --- | --- | --- |
-| `PORT` | `4000` | HTTP port for the NestJS server |
+| `PORT` | `3001` | HTTP port for the NestJS server |
 | `JWT_SECRET` | `local-development-secret` | Symmetric secret used to sign access tokens |
 | `JWT_EXPIRES_IN` | `1h` | JWT expiration window expressed in [zeit/ms](https://github.com/vercel/ms) compatible format |
 
